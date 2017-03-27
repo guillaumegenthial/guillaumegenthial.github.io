@@ -1,0 +1,78 @@
+# Welcome to Jekyll!
+#
+# This config file is meant for settings that affect your whole blog, values
+# which you are expected to set up once and rarely edit after that. If you find
+# yourself editing this file very often, consider using Jekyll's data files
+# feature for the data you need to update frequently.
+#
+# For technical reasons, this file is *NOT* reloaded automatically when you use
+# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
+
+# Site settings
+# These are used to personalize your new site. If you look in the HTML files,
+# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
+# You can create any custom variable you would like, and they will be accessible
+# in the templates via {{ site.myvariable }}.
+title: Guillaume Genthial blog
+email: ""
+description: "Attempt to share some of my experience in NLP and AI"
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
+github_username:  guillaumegenthial
+
+# Build settings
+markdown: kramdown
+theme: minima
+gems:
+  - jekyll-feed
+exclude:
+  - Gemfile
+  - Gemfile.lock
+
+
+curriculum:
+  - image: img/snlp.jpg
+    title: Deep Learning for NLP
+    info: Winter 2016
+    description: Course Assistant for CS224N
+    url: http://cs224n.stanford.edu
+  - image: img/stanford.png
+    title: Stanford University
+    info: 2016-2018
+    description: Master in ICME - Data Science Track
+    url: https://icme.stanford.edu
+  - image: img/proxem.jpg
+    title: Proxem (Paris)
+    info: Summer 2016
+    description: Research on Named Entity Recognition with LSTM + CRF
+    url: https://www.proxem.com/en/
+  - image: img/riminder.png
+    title: Riminder (Paris)
+    info: Spring 2016
+    description: Project in Question Answering + Chat Bot
+    url: https://www.riminder.net
+  - image: img/x.jpg
+    title: Ecole polytechnique
+    info: 2013 - 2016
+    url: https://www.polytechnique.edu
+    description: Master in Applied Mathematics - Diplome d'Ingenieur
+  - image: img/option.jpg
+    title: Option TI (Santiago de Chile)
+    info: Summer 2015
+    description: Web Developer
+    url: https://www.option.cl
+  - image: img/sorbonne.png
+    title: Universite Pantheon-Sorbonne
+    info: 2014-2015
+    url: https://www.univ-paris1.fr/ufr/ufr10/
+    description: Licence 3, Philosophie
+  - image: img/marine_nationale.png
+    title: Marine Nationale
+    info: 2013
+    description: Aspirant - French Guyana and La Martinique
+    url: http://www.defense.gouv.fr/marine/equipements/batiments-de-combat/patrouilleurs/type-p-400/la-capricieuse-p-684
+  - image: img/ginette.png
+    title: Lycee Sainte Genevieve
+    info: 2011-2013
+    description: Classes preparatoire - MP
+    url: http://bginette.com

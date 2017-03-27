@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en" }}">
+
+  {% include head.html %}
+  <head>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/modernizr.js"></script>
+  </head>
+  
+  <body>
+
+
+    {% include header.html %}
+
+    <main class="post" aria-label="Content">
+      <div class="wrapper">
+
+      <h1 class="page-heading"></h1>
+
+        {{ content }}
+     
+     <section id="cd-timeline" class="cd-container">
+        {% for event in site.curriculum %}
+
+        <div class="cd-timeline-block">
+            <a href="{{event.url}}">
+            <div class="cd-timeline-img" href="{{event.url}}">
+                <img src="{{event.image}}">
+            </div>
+            </a>
+
+            <div class="cd-timeline-content">
+                <h3>{{event.title}}</h3>
+                <p>{{event.description}}</p>
+                <span class="cd-date">{{event.info}}</span>
+            </div> <!-- cd-timeline-content -->
+        </div> <!-- cd-timeline-block -->
+        {% endfor %}
+
+    </section> <!-- cd-timeline -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="js/main.js"></script>
+  
+    </div>
+    </main>
+
+    {% include footer.html %}
+
+  </body>
+</html>
+
+
