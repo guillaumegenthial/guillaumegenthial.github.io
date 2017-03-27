@@ -38,7 +38,7 @@ curriculum:
     url: http://cs224n.stanford.edu
   - image: img/stanford.png
     title: Stanford University
-    info: 2016-2018
+    info: 2016 - 2018
     description: Master in ICME - Data Science Track
     url: https://icme.stanford.edu
   - image: img/proxem.jpg
@@ -63,7 +63,7 @@ curriculum:
     url: https://www.option.cl
   - image: img/sorbonne.png
     title: Université Panthéon-Sorbonne
-    info: 2014-2015
+    info: 2014 - 2015
     url: https://www.univ-paris1.fr/ufr/ufr10/
     description: Licence 3, Philosophie
   - image: img/marine_nationale.png
@@ -73,6 +73,6 @@ curriculum:
     url: http://www.defense.gouv.fr/marine/equipements/batiments-de-combat/patrouilleurs/type-p-400/la-capricieuse-p-684
   - image: img/ginette.png
     title: Lycée Sainte Geneviève
-    info: 2011-2013
+    info: 2011 - 2013
     description: Classes préparatoires - Maths Physics
     url: http://bginette.com

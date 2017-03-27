@@ -138,6 +138,15 @@
   text-align: right;
 }
 
+@media only screen and (max-width: 768px) {
+  .footer-col-2 {
+    text-align: left;
+  }
+  .footer-col-3 {
+    text-align: left;
+  }
+}
+
 @include media-query($on-laptop) {
   .footer-col-1,
   .footer-col-2 {
