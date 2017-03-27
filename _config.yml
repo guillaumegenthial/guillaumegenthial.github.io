@@ -52,17 +52,17 @@ curriculum:
     description: Project in Question Answering + Chat Bot
     url: https://www.riminder.net
   - image: img/x.jpg
-    title: Ecole polytechnique
+    title: École polytechnique
     info: 2013 - 2016
     url: https://www.polytechnique.edu
-    description: Master in Applied Mathematics - Diplome d'Ingenieur
+    description: Master in Applied Mathematics - Diplôme d'Ingénieur
   - image: img/option.jpg
     title: Option TI (Santiago de Chile)
     info: Summer 2015
     description: Web Developer
     url: https://www.option.cl
   - image: img/sorbonne.png
-    title: Universite Pantheon-Sorbonne
+    title: Université Panthéon-Sorbonne
     info: 2014-2015
     url: https://www.univ-paris1.fr/ufr/ufr10/
     description: Licence 3, Philosophie
@@ -72,7 +72,7 @@ curriculum:
     description: Aspirant - French Guyana and La Martinique
     url: http://www.defense.gouv.fr/marine/equipements/batiments-de-combat/patrouilleurs/type-p-400/la-capricieuse-p-684
   - image: img/ginette.png
-    title: Lycee Sainte Genevieve
+    title: Lycée Sainte Geneviève
     info: 2011-2013
-    description: Classes preparatoire - MP
+    description: Classes préparatoires - Maths Physics
     url: http://bginette.com
