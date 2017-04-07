@@ -1,6 +1,8 @@
 ---
 layout: post
 title:  "Sequence Tagging with Tensorflow"
+description: "bidirectionnal LSTM with character embeddings + Conditional Random Field (CRF) for sequence tagging: Part-of-Speech (POS), Named Entity Recognition (NER), etc."
+excerpt: "bi-LSTM + CRF with character embeddings for NER and POS"
 date:   2017-04-05
 mathjax: true
 comments: true
@@ -243,7 +245,7 @@ $$
 \begin{align*}
 Z^t(y^t)       &= \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}}} \sum_{y^{t+2}, \ldots, y^m} e^{s(y^{t+1}, \ldots, y^m)} \\
                &= \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}}} Z^{t+1}(y^{t+1})\\
-\log(Z^t(y^t)) &= \log \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}} + \log Z^{t+1}(y^{t+1})}
+\log Z^t(y^t)  &= \log \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}} + \log Z^{t+1}(y^{t+1})}
 \end{align*}
 $$
 

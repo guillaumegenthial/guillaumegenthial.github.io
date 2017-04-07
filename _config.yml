@@ -17,14 +17,10 @@ title: Guillaume Genthial blog
 email: ""
 description: "Attempt to share some of my experience in NLP and AI"
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://guillaumegenthial.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  guillaumegenthial
+google_analytics: UA-97038685-1
 
-# Disqus Comments
-disqus:
-    # Leave shortname blank to disable comments site-wide.
-    # Disable comments for any post by adding `comments: false` to that post's YAML Front Matter.
-    shortname: guillaumegenthial-github-io
 
 # Build settings
 permalink: none
@@ -32,6 +28,7 @@ markdown: kramdown
 theme: minima
 gems:
   - jekyll-feed
+  - jekyll-seo-tag
 exclude:
   - Gemfile
   - Gemfile.lock
