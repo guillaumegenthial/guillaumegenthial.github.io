@@ -4,3 +4,11 @@
     display: block;
     max-width: 70%;
 }
+
+p {
+    text-align: justify;
+}
+
+li {
+    text-align: justify;
+}
