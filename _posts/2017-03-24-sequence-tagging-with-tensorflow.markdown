@@ -3,6 +3,7 @@ layout: post
 title:  "Sequence Tagging with Tensorflow"
 date:   2017-04-05
 mathjax: true
+comments: true
 ---
 
 ## Introduction
