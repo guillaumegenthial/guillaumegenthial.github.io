@@ -7,6 +7,8 @@ date:   2017-04-05
 mathjax: true
 comments: true
 ---
+Code is available on [github](https://github.com/guillaumegenthial/sequence_tagging).
+
 
 ## Introduction
 
@@ -128,10 +130,11 @@ char_embeddings = tf.reshape(char_embeddings, shape=[-1, s[-2], s[-1]])
 word_lengths = tf.reshape(self.word_lengths, shape=[-1])
 
 # 3. bi lstm on chars
-lstm_cell = tf.contrib.rnn.LSTMCell(char_hidden_size, state_is_tuple=True)
+cell_fw = tf.contrib.rnn.LSTMCell(char_hidden_size, state_is_tuple=True)
+cell_bw = tf.contrib.rnn.LSTMCell(char_hidden_size, state_is_tuple=True)
 
-_, ((_, output_fw), (_, output_bw)) = tf.nn.bidirectional_dynamic_rnn(lstm_cell, 
-    lstm_cell, char_embeddings, sequence_length=word_lengths, 
+_, ((_, output_fw), (_, output_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
+    cell_bw, char_embeddings, sequence_length=word_lengths, 
     dtype=tf.float32)
 # shape = (batch x sentence, 2 x char_hidden_size)
 output = tf.concat([output_fw, output_bw], axis=-1)
@@ -144,6 +147,10 @@ word_embeddings = tf.concat([pretrained_embeddings, char_rep], axis=-1)
 ```
 
 > A special note on `tf.nn.bidirectional_dynamic_rnn` and the `LSTMCell`. You may have noticed that we use the "same" instance of the cell for the forward and backward. However, due to the fact that the parameters of the cell are initialized in the `__call__` method of the cell and that this method is called in 2 different scopes (created by `bidirectional_dynamic_rnn`), we end up with cells with distinct parameters. While this behavior is a good safeguard, it could be unpractical in some corner cases. Imagine for instance that we want to use the same cell for forward and backward...
+
+EDIT: 
+
+> Big changes to the `RNNCell`, to quote TF 1.2 release note: "RNNCell objects now subclass tf.layers.Layer. The strictness described in the TensorFlow 1.1 release is gone: The first time an RNNCell is used, it caches its scope. All future uses of the RNNCell will reuse variables from that same scope. This is a breaking change from the behavior of RNNCells in TensorFlow versions <= 1.0.1. TensorFlow 1.1 had checks in place to ensure old code works correctly with the new semantics; this version allows more flexible uses of RNNCell but can lead to subtle errors if using code meant for TensorFlow <= 1.0.1. For example, writing: MultiRNNCell([lstm] * 5) will now build a 5-layer LSTM stack where each layer shares the same parameters. To get 5 layers each with their own parameters, write: MultiRNNCell([LSTMCell(...) for _ in range(5)]). If at all unsure, first test your code with TF 1.1; ensure it raises no errors, and then upgrade to TF 1.2."
 
 > Also note the use of the special argument `sequence_length` that ensures that the last state that we get is the last **valid** state. Thanks to this argument, for the unvalid time steps, the `dynamic_rnn` passes the state through and outputs a vector of zeros.
 
@@ -160,10 +167,11 @@ The tensorflow code is straightfoward. This time we use the hidden states of eac
 
 
 ```python
-lstm_cell = tf.contrib.rnn.LSTMCell(hidden_size)
+cell_fw = tf.contrib.rnn.LSTMCell(hidden_size)
+cell_bw = tf.contrib.rnn.LSTMCell(hidden_size)
 
-(output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(lstm_cell, 
-    lstm_cell, word_embeddings, sequence_length=sequence_lengths, 
+(output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
+    cell_bw, word_embeddings, sequence_length=sequence_lengths, 
     dtype=tf.float32)
 
 context_rep = tf.concat([output_fw, output_bw], axis=-1)
