@@ -35,6 +35,11 @@ exclude:
 
 
 curriculum:
+  - image: img/rl.png
+    title: Reinforcement Learning
+    info: Spring 2017
+    description: Course Assistant for CS234
+    url: http://web.stanford.edu/class/cs234/index.html
   - image: img/snlp.jpg
     title: Deep Learning for NLP
     info: Winter 2016
