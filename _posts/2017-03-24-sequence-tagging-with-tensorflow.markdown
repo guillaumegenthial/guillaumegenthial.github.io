@@ -140,7 +140,7 @@ _, ((_, output_fw), (_, output_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw,
 output = tf.concat([output_fw, output_bw], axis=-1)
 
 # shape = (batch, sentence, 2 x char_hidden_size)
-char_rep = tf.reshape(char_rep, shape=[-1, s[1], 2*char_hidden_size])
+char_rep = tf.reshape(output, shape=[-1, s[1], 2*char_hidden_size])
 
 # shape = (batch, sentence, 2 x char_hidden_size + word_vector_size)
 word_embeddings = tf.concat([pretrained_embeddings, char_rep], axis=-1)
