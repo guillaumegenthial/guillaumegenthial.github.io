@@ -68,20 +68,20 @@ Blackburn I-PER
 
 You're right. Like most of the NLP systems, ours is gonna rely on a recurrent neural network at some point. But before delving into the details of our model, let's break it into 3 pieces:
 
-- **Word Representation**: we need to use a dense representation $ w \in \mathbb{R}^n $ for each word. The first thing we can do is load some pre-trained word embeddings $ w_p \in \mathbb{R}^d $ ([GloVe](https://nlp.stanford.edu/projects/glove/), [Word2Vec](https://code.google.com/archive/p/word2vec/), [Senna](http://ronan.collobert.com/senna/), etc.). We're also going to extract some meaning from the characters. As we said, a lot of entities don't even have a pretrained word vector, and the fact that the word starts with a capital letter may help for instance.
+- **Word Representation**: we need to use a dense representation $ w \in \mathbb{R}^n $ for each word. The first thing we can do is load some pre-trained word embeddings $ w_{glove} \in \mathbb{R}^{d_1} $ ([GloVe](https://nlp.stanford.edu/projects/glove/), [Word2Vec](https://code.google.com/archive/p/word2vec/), [Senna](http://ronan.collobert.com/senna/), etc.). We're also going to extract some meaning from the characters. As we said, a lot of entities don't even have a pretrained word vector, and the fact that the word starts with a capital letter may help for instance.
 - **Contextual Word Representation**: for each word in its context, we need to get a meaningful representation $ h \in \mathbb{R}^k $. Good guess, we're gonna use an LSTM here.
 - **Decoding**: the ultimate step. Once we have a vector representing each word, we can use it to make a prediction.
 
 ### Word Representation
 
-For each word, we want to build a vector $ w \in \mathbb{R}^n $ that will capture the meaning and relevant features for our task. We're gonna build this vector as a concatenation of the word embeddings $ w_p \in \mathbb{R}^{d_1} $ from GloVe and a vector containing features extracted from the character level $ w_c \in \mathbb{R}^k $. One option is to use hand-crafted features, like a component with a 0 or 1 if the word starts with a capital for instance. Another fancier option is to use some kind of neural network to make this extraction automatically for us. In this post, we're gonna use a bi-LSTM at the character level, but we could use any other kind of recurrent neural network or even a convolutional neural network at the character or n-gram level.
+For each word, we want to build a vector $ w \in \mathbb{R}^n $ that will capture the meaning and relevant features for our task. We're gonna build this vector as a concatenation of the word embeddings $ w_{glove} \in \mathbb{R}^{d_1} $ from GloVe and a vector containing features extracted from the character level $ w_{chars} \in \mathbb{R}^{d_2} $. One option is to use hand-crafted features, like a component with a 0 or 1 if the word starts with a capital for instance. Another fancier option is to use some kind of neural network to make this extraction automatically for us. In this post, we're gonna use a bi-LSTM at the character level, but we could use any other kind of recurrent neural network or even a convolutional neural network at the character or n-gram level.
 
 {% include image.html url="/assets/char_representation.png" 
 description="Word level representation from characters embeddings" %}
 
-Each character $ c_i $ of a word $ w = [c_1, \ldots, c_p] $ (we make the distinction between lowercase and uppercase, for instance `a` and `A` are considered different) is associated to a vector $ c_i \in \mathbb{R}^{d_2} $. We run a bi-LSTM over the sequence of character embeddings and concatenate the final states to obtain a fixed-size vector $ w_c \in \mathbb{R}^c $. Intuitively, this vector captures the morphology of the word. Then, we concatenate  $ w_c $ to the word embedding $ w_p $ to get a vector representing our word $ w = [w_p, w_c] $.
+Each character $ c_i $ of a word $ w = [c_1, \ldots, c_p] $ (we make the distinction between lowercase and uppercase, for instance `a` and `A` are considered different) is associated to a vector $ c_i \in \mathbb{R}^{d_3} $. We run a bi-LSTM over the sequence of character embeddings and concatenate the final states to obtain a fixed-size vector $ w_{chars} \in \mathbb{R}^{d_2} $. Intuitively, this vector captures the morphology of the word. Then, we concatenate  $ w_{chars} $ to the word embedding $ w_{glove} $ to get a vector representing our word $ w = [w_{glove}, w_{chars}] \in \mathbb{R}^n $ with $ n = d_1 + d_2 $.
 
-Let's have a look at the Tensorflow code. First let's load the word embeddings. Recall that as Tensorflow receives batches of words and data, we need to pad sentences to make them the same length. As a result, we need to define 2 placeholders:
+Let's have a look at the Tensorflow code. Recall that as Tensorflow receives batches of words and data, we need to pad sentences to make them the same length. As a result, we need to define 2 placeholders (= entries of the computational graph):
 
 ```python
 # shape = (batch size, max length of sentence in batch)
@@ -91,7 +91,7 @@ word_ids = tf.placeholder(tf.int32, shape=[None, None])
 sequence_lengths = tf.placeholder(tf.int32, shape=[None])
 ```
 
-Now, let's use tensorflow built-in functions to load the word embeddings. Assume that `embeddings` is an array with our GloVe embeddings.
+Now, let's use tensorflow built-in functions to load the word embeddings. Assume that `embeddings` is a numpy array with our GloVe embeddings, such that `embeddings[i]` gives the vector of the i-th word.
 
 ```python
 L = tf.Variable(embeddings, dtype=tf.float32, trainable=False)
@@ -123,8 +123,8 @@ K = tf.get_variable(name="char_embeddings", dtype=tf.float32,
 # shape = (batch, sentence, word, dim of char embeddings)
 char_embeddings = tf.nn.embedding_lookup(K, char_ids)
 
-# 2. put the time dimension on axis=1
-s = tf.shape(char_embeddings)
+# 2. put the time dimension on axis=1 for dynamic_rnn
+s = tf.shape(char_embeddings) # store old shape
 # shape = (batch x sentence, word, dim of char embeddings)
 char_embeddings = tf.reshape(char_embeddings, shape=[-1, s[-2], s[-1]])
 word_lengths = tf.reshape(self.word_lengths, shape=[-1])
@@ -157,13 +157,13 @@ EDIT:
 
 ### Contextual Word Representation
 
-Once we have our word representation $ w $, we simply run a LSTM (or bi-LSTM) over the sequence of word vectors and obtain another sequence of vectors (the hidden states of the LSTM or the concatenation of the two hidden states in the case of a bi-LSTM), $ h_i \in \mathbb{R}^k $.
+Once we have our word representation $ w $, we simply run a LSTM (or bi-LSTM) over the sequence of word vectors and obtain another sequence of vectors (the hidden states of the LSTM or the concatenation of the two hidden states in the case of a bi-LSTM), $ h \in \mathbb{R}^k $.
 
 
 {% include image.html url="/assets/bi-lstm.png" 
 description="Bidirectional LSTM on top of word representation to extract contextual representation of each word" %}
 
-The tensorflow code is straightfoward. This time we use the hidden states of each time step and not just the final states.
+The tensorflow code is straightfoward. This time we use the hidden states of each time step and not just the final states. Thus, we had as input a sequence of $ m $ word vectors $ w_1, \ldots, w_m \in \mathbb{R}^n $ and now we have a sequence of vectors $ h_1, \ldots, h_m \in \mathbb{R}^k $. Whereas the $ w_t $ only captured information at the word level (syntax and semantics), the $ h_t $ also take context into account.
 
 
 ```python
@@ -179,16 +179,9 @@ context_rep = tf.concat([output_fw, output_bw], axis=-1)
 
 ### Decoding
 
-At this stage, each word $ w $ is associated to a vector $ h $ that captures information from the meaning of the word, its characters and its context. Let's use it to make a final prediction. We can use a fully connected neural network to get a vector where each entry corresponds to a score for each tag. Then, we have two options:
+**Computing Tags Scores** At this stage, each word $ w $ is associated to a vector $ h $ that captures information from the meaning of the word, its characters and its context. Let's use it to make a final prediction. We can use a fully connected neural network to get a vector where each entry corresponds to a score for each tag.
 
-- for each word, normalize the score vector by using a **softmax** and take the $ \operatorname{argmax} $ to make the final prediction at the **word level**.
-- use a **Conditional Random Field (CRF)** to make the prediction at the **sentence level**.
-
-In both cases, we want to be able to compute the probability $ \mathbb{P}(y^1, \ldots, y^m) $ of a tagging sequence $ y^t $ and find the sequence with the highest probability.
-
-> "Wait, can you explain the last steps? What's a CRF?"
-
-Let's say we have $ 9 $ classes. We take a matrix $ W \in \mathbb{R}^{9 \times k} $ and compute a vector of scores $ s \in \mathbb{R}^9 = W \cdot h $. We can interpret $ s_i \in \mathbb{R} $ as the score of class $ i $ for word $ w $. One way to do this in tensorflow is:
+Let's say we have $ 9 $ classes. We take a matrix $ W \in \mathbb{R}^{9 \times k} $ and $ b \in \mathbb{R}^9 $ and compute a vector of scores $ s \in \mathbb{R}^9 = W \cdot h + b $. We can interpret the $ i $-th component of $ s $ (that we will refer to as $ s[i] $) as the score of class $ i $ for word $ w $. One way to do this in tensorflow is:
 
 ```python
 W = tf.get_variable("W", shape=[2*self.config.hidden_size, self.config.ntags], 
@@ -205,15 +198,20 @@ scores = tf.reshape(pred, [-1, ntime_steps, ntags])
 
 > Note that we use a `zero_initializer` for the bias.
 
+**Decoding the scores** Then, we have two options to make our final prediction.
+
+> In both cases, we want to be able to compute the probability $ \mathbb{P}(y_1, \ldots, y_m) $ of a tagging sequence $ y_t $ and find the sequence with the highest probability. Here, $ y_t $ is the id of the tag for the t-th word.
+
 Here we have two options:
 
-- **softmax**: normalize the scores into a vector $ p \in \mathbb{R}^9 $ such that $ p_i = \frac{e^{s_i}}{\sum_{j=1}^9 e^{s_j}} $. Then, $ p_i $ can be interpreted as the probability that the word belongs to class $ i $. Eventually, the probability $ \mathbb{P}(y) $ of a sequence of tag $ y $ is the product $ \prod_t p_{y^t} $.
-- **linear-chain CRF**: the first method makes local choices. In other words, even if we capture some information from the context in our $ h $ thanks to the bi-LSTM, the tagging decision is still local. We don't make use of the neighbooring tagging decisions. For instance, in `New York`, the fact that we are tagging `York` as a location should help us to decide that `New` corresponds to the beginning of a location. Given a sequence of words $ w^1, \ldots, w^m $, a sequence of score vectors $ s^1, \ldots, s^m $ and a sequence of tags $ y^1, \ldots, y^m $, a linear-chain CRF defines a global score $ s \in \mathbb{R} $ such that 
+- **softmax**: normalize the scores into a vector $ p \in \mathbb{R}^9 $ such that $ p[i]= \frac{e^{s[i]}}{\sum_{j=1}^9 e^{s[j]}} $. Then, $ p_i $ can be interpreted as the probability that the word belongs to class $ i $ (positive, sum to 1). Eventually, the probability $ \mathbb{P}(y) $ of a sequence of tag $ y $ is the product $ \prod_{t=1}^m p_t [y_t] $.
+
+- **linear-chain CRF**: the first method makes local choices. In other words, even if we capture some information from the context in our $ h $ thanks to the bi-LSTM, the tagging decision is still local. We don't make use of the neighbooring tagging decisions. For instance, in `New York`, the fact that we are tagging `York` as a location should help us to decide that `New` corresponds to the beginning of a location. Given a sequence of words $ w_1, \ldots, w_m $, a sequence of score vectors $ s_1, \ldots, s_m $ and a sequence of tags $ y_1, \ldots, y_m $, a linear-chain CRF defines a global score $ C \in \mathbb{R} $ such that 
 
 $$ 
 \begin{align*}
-s(y^1, \ldots, y^m) &= b_{y^1} &+ \sum_{t=1}^{m} s^t_{y^t} &+ \sum_{t=1}^{m-1} T_{y^{t}, y^{t+1}} &+ e_{y^m}\\
-                    &= \text{start} &+ \text{scores} &+ \text{transitions} &+ \text{end}
+C(y_1, \ldots, y_m) &= b[y_1] &+ \sum_{t=1}^{m} s_t [y_t] &+ \sum_{t=1}^{m-1} T[y_{t}, y_{t+1}] &+ e[y_m]\\
+                    &= \text{begin} &+ \text{scores} &+ \text{transitions} &+ \text{end}
 \end{align*}
 $$
 
@@ -230,37 +228,39 @@ Now that we understand the scoring function of the CRF, we need to do 2 things:
 
 > "This sounds awesome, but don't we have a computational problem as the number of possible tag choices is exponential?"
 
-**Finding the best sequence**  Well, you're right. We cannot reasonnably imagine to compute the scores of all the $ 9^m $ tagging choices to choose the best one or even normalize each sequence score into a propability. Luckily, the recurrent nature of our formula makes it the perfect candidate to apply dynamic programming. Let's suppose that we have the solution $ \tilde{s}^{t+1}(y^{t+1}) $ for time steps $ t+1, \ldots, m $ for sequences that start with $ y^{t+1} $. Then, the solution $ \tilde{s}^t(y^t) $ for time steps $ t, \ldots, m $ that starts with $ y^t $ verifies
+**Finding the best sequence**  Well, you're right. We cannot reasonnably imagine to compute the scores of all the $ 9^m $ tagging choices to choose the best one or even normalize each sequence score into a propability. 
+
+Luckily, the recurrent nature of our formula makes it the perfect candidate to apply dynamic programming. Let's suppose that we have the solution $ \tilde{s}_{t+1} (y^{t+1}) $ for time steps $ t+1, \ldots, m $ for sequences that start with $ y^{t+1} $ for each of the 9 possible $ y^{t+1} $. Then, the solution $ \tilde{s}_t(y_t) $ for time steps $ t, \ldots, m $ that starts with $ y_t $ verifies
 
 
 $$ 
 \begin{align*}
-\tilde{s}^t(y^t) &= \operatorname{argmax}_{y^t, \ldots, y^m} s(y^t, \ldots, y^m)\\
-            &= \operatorname{argmax}_{y^{t+1}} s^t_{y^t} + T_{y^{t}, y^{t+1}} + \tilde{s}^{t+1}(y^{t+1})
+\tilde{s}_t(y_t) &= \operatorname{argmax}_{y_t, \ldots, y_m} C(y_t, \ldots, y_m)\\
+            &= \operatorname{argmax}_{y_{t+1}} s_t [y_t] + T[y_{t}, y_{t+1}] + \tilde{s}_{t+1}(y^{t+1})
 \end{align*}
 $$
 
 
-Then, each recurrence step is done in $ O(9 \times 9) $ (taking the argmax for each class). As we perform  $ m $ steps, our final cost is $ O(9 \times 9 \times m) $ with is much better.
+Then, each recurrence step is done in $ O(9 \times 9) $ (taking the argmax for each class). As we perform  $ m $ steps, our final cost is $ O(9 \times 9 \times m) $ with is much better. For instance, for a sentence of 10 words we go from more than 3 billions ($ 9^{10} $) to just 810 in terms of complexity ( $ 9 \times 9 \times 10 )$!
 
 **Probability Distribution over the sequence of tags** The final step of a linear chain CRF is to apply a softmax to the scores of all possible sequences to get the probabilty $ \mathbb{P}(y) $ of a given sequence of tags $ y $. To do that, we need to compute the partition factor
 
-$$ Z = \sum_{y^1, \ldots, y^m} e^{s(y^1, \ldots, y^m)} $$
+$$ Z = \sum_{y_1, \ldots, y_m} e^{C(y_1, \ldots, y_m)} $$
 
-which is the sum of the scores of all possible sequences. We can apply the same idea as above, but instead of taking the argmax, we sum over all possible paths. Let's call $ Z^t(y^t) $ the sum of scores for all sequences that start at time step $ t $ with tag $ y^t $. Then, $ Z^t $ verifies
+which is the sum of the scores of all possible sequences. We can apply the same idea as above, but instead of taking the argmax, we sum over all possible paths. Let's call $ Z_t(y_t) $ the sum of scores for all sequences that start at time step $ t $ with tag $ y_t $. Then, $ Z_t $ verifies
 
 $$ 
 \begin{align*}
-Z^t(y^t)       &= \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}}} \sum_{y^{t+2}, \ldots, y^m} e^{s(y^{t+1}, \ldots, y^m)} \\
-               &= \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}}} Z^{t+1}(y^{t+1})\\
-\log Z^t(y^t)  &= \log \sum_{y^{t+1}} e^{s^t_{y^t} + T_{y^{t}, y^{t+1}} + \log Z^{t+1}(y^{t+1})}
+Z_t(y_t)       &= \sum_{y_{t+1}} e^{s_t[y_t] + T[y_{t}, y_{t+1}]} \sum_{y_{t+2}, \ldots, y_m} e^{C(y_{t+1}, \ldots, y_m)} \\
+               &= \sum_{y_{t+1}} e^{s_t[y_t] + T[y_{t}, y_{t+1}]} \ Z_{t+1}(y_{t+1})\\
+\log Z_t(y_t)  &= \log \sum_{y_{t+1}} e^{s_t [y_t] + T[y_{t}, y_{t+1}] + \log Z_{t+1}(y_{t+1})}
 \end{align*}
 $$
 
 
 Then, we can easily define the probability of a given sequence of tags as 
 
-$$ \mathbb{P}(y^1, \ldots, y^m) = \frac{e^{s(y^1, \ldots, y^m)}}{Z} $$
+$$ \mathbb{P}(y_1, \ldots, y_m) = \frac{e^{C(y_1, \ldots, y_m)}}{Z} $$
 
 
 ## Training
@@ -270,8 +270,8 @@ Now that we've explained the architecture of our model and spent some time on CR
 $$ - \log (\mathbb{P}(\tilde{y})) $$
 
 where $ \tilde{y} $ is the correct sequence of tags and its probability $$ \mathbb{P} $$ is given by 
-- **CRF**: $ \mathbb{P}(\tilde{y}) = \frac{e^{s(\tilde{y})}}{Z} $
-- **local softmax**: $ \mathbb{P}(\tilde{y}) = \prod p^t_{\tilde{y}^t} $.
+- **CRF**: $ \mathbb{P}(\tilde{y}) = \frac{e^{C(\tilde{y})}}{Z} $
+- **local softmax**: $ \mathbb{P}(\tilde{y}) = \prod p_t[\tilde{y}^t] $.
 
 >"I'm afraid that coding the CRF loss is gonna be painful..."
 
@@ -308,13 +308,17 @@ train_op = optimizer.minimize(self.loss)
 
 ## Using the trained model
 
-For the local softmax method, performing the final prediction is straightfoward, the class is just the class with the highest score for each time step.
+For the local softmax method, performing the final prediction is straightfoward, the class is just the class with the highest score for each time step. This is done via tensorflow with :
 
 ```python
 labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
 ```
 
-For the CRF, we have to use dynamic programming, as explained above. Again, this only take one line with tensorflow! Pay attention that we make the prediction for only one sample!
+For the CRF, we have to use dynamic programming, as explained above. Again, this only take one line with tensorflow! 
+
+> This function is pure 'python', as we get as argument the `transition_params`. The tensorflow `Session()` evaluates `score` (= the $ s_t $ ), that's all. Pay attention that this makes the prediction for only one sample!
+
+> The Viterbi decoding step is done in python for now, but as there seems to be some progress in contrib on similar problems (Beam Search for instance) we can hope for an 'all-tensorflow' CRF implementation anytime soon.
 
 ```python
 # shape = (sentence, nclasses)
@@ -323,7 +327,7 @@ viterbi_sequence, viterbi_score = tf.contrib.crf.viterbi_decode(
                                 score, transition_params)
 ```
 
-With the previous code you should get an F1 score close to 90!
+With the previous code you should get an F1 score close between 90 and 91!
 
 ## Conclusion
 
