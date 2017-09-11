@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Sequence Tagging with Tensorflow"
-description: "bidirectionnal LSTM with character embeddings + Conditional Random Field (CRF) for sequence tagging: Part-of-Speech (POS), Named Entity Recognition (NER), etc."
+description: "NLP Named Entity Recognition Tensorflow bidirectional rnn bi-lstm CRF example POS NER sequence tagging characters"
 excerpt: "bi-LSTM + CRF with character embeddings for NER and POS"
 date:   2017-04-05
 mathjax: true
