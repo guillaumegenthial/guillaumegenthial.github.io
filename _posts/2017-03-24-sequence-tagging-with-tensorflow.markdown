@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Sequence Tagging with Tensorflow"
-description: "Sequence Tagging (Named Entity Recognition, NER, POS) with Tensorflow - bidirectional rnn (bi-lstm), CRF and characters"
+description: "Example of Tensorflow implementation of NLP model (GloVe + character embeddings + bi-LSTM + CRF) for Sequence Tagging (Named Entity Recognition, NER, POS...)"
 excerpt: "bi-LSTM + CRF with character embeddings for NER and POS"
 date:   2017-04-05
 mathjax: true
