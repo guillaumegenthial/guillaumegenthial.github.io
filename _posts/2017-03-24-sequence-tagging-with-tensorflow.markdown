@@ -14,12 +14,12 @@ Code is available on [github](https://github.com/guillaumegenthial/sequence_tagg
 
 I remember the first time I heard about the magic of Deep Learning for **Natural Language Processing (NLP)**. I was just starting a project with a young French startup [Riminder](https://www.riminder.net) and it was the first time I heard about word embeddings. There are moments in life when the confrontation with a new theory seems to make everything else irrelevant. Hearing about word vectors that encode similarity and meaning between words was one of these moments. I was baffled by the simplicity of the model as I started to play with these new concepts, building my first recurrent neural network for sentiment analysis. A few months later, as part of the master thesis of my master in the French university [Ecole polytechnique](https://www.polytechnique.edu) I was working on more advanced models for sequence tagging at [Proxem](https://www.proxem.com/en/).
 
-{% include image.html url="https://nlp.stanford.edu/projects/glove/images/man_woman.jpg" 
+{% include image.html url="https://nlp.stanford.edu/projects/glove/images/man_woman.jpg"
 description="Linear Dependencies between word vectors - GloVe" %}
 
 
 
-**Tensorflow vs Thenao** At that time, Tensorflow had just been open sourced and Theano was the most widely used framework. For those who are not familiar with the two, Theano operates at the matrix level while Tensorflow comes with a lot of pre-coded layers and helpful training mechanisms. Using Theano was sometimes painful but forced me to pay attention to the tiny details hidden in the equations and have a global understanding of how a deep learning library works. 
+**Tensorflow vs Thenao** At that time, Tensorflow had just been open sourced and Theano was the most widely used framework. For those who are not familiar with the two, Theano operates at the matrix level while Tensorflow comes with a lot of pre-coded layers and helpful training mechanisms. Using Theano was sometimes painful but forced me to pay attention to the tiny details hidden in the equations and have a global understanding of how a deep learning library works.
 
 Fastforward a few months: I'm in Stanford and I'm using Tensorflow. One day, here I am, asking myself: "What if you tried to code one of the sequence tagging models in Tensorflow? How long would it take?". The answer is: no more than a few hours.
 
@@ -76,7 +76,7 @@ You're right. Like most of the NLP systems, ours is gonna rely on a recurrent ne
 
 For each word, we want to build a vector $ w \in \mathbb{R}^n $ that will capture the meaning and relevant features for our task. We're gonna build this vector as a concatenation of the word embeddings $ w_{glove} \in \mathbb{R}^{d_1} $ from GloVe and a vector containing features extracted from the character level $ w_{chars} \in \mathbb{R}^{d_2} $. One option is to use hand-crafted features, like a component with a 0 or 1 if the word starts with a capital for instance. Another fancier option is to use some kind of neural network to make this extraction automatically for us. In this post, we're gonna use a bi-LSTM at the character level, but we could use any other kind of recurrent neural network or even a convolutional neural network at the character or n-gram level.
 
-{% include image.html url="/assets/char_representation.png" 
+{% include image.html url="/assets/char_representation.png"
 description="Word level representation from characters embeddings" %}
 
 Each character $ c_i $ of a word $ w = [c_1, \ldots, c_p] $ (we make the distinction between lowercase and uppercase, for instance `a` and `A` are considered different) is associated to a vector $ c_i \in \mathbb{R}^{d_3} $. We run a bi-LSTM over the sequence of character embeddings and concatenate the final states to obtain a fixed-size vector $ w_{chars} \in \mathbb{R}^{d_2} $. Intuitively, this vector captures the morphology of the word. Then, we concatenate  $ w_{chars} $ to the word embedding $ w_{glove} $ to get a vector representing our word $ w = [w_{glove}, w_{chars}] \in \mathbb{R}^n $ with $ n = d_1 + d_2 $.
@@ -118,7 +118,7 @@ Well, that's up to us. It depends on how we perform our padding, but in this pos
 
 ```python
 # 1. get character embeddings
-K = tf.get_variable(name="char_embeddings", dtype=tf.float32, 
+K = tf.get_variable(name="char_embeddings", dtype=tf.float32,
     shape=[nchars, dim_char])
 # shape = (batch, sentence, word, dim of char embeddings)
 char_embeddings = tf.nn.embedding_lookup(K, char_ids)
@@ -133,8 +133,8 @@ word_lengths = tf.reshape(self.word_lengths, shape=[-1])
 cell_fw = tf.contrib.rnn.LSTMCell(char_hidden_size, state_is_tuple=True)
 cell_bw = tf.contrib.rnn.LSTMCell(char_hidden_size, state_is_tuple=True)
 
-_, ((_, output_fw), (_, output_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
-    cell_bw, char_embeddings, sequence_length=word_lengths, 
+_, ((_, output_fw), (_, output_bw)) = tf.nn.bidirectional_dynamic_rnn(cell_fw,
+    cell_bw, char_embeddings, sequence_length=word_lengths,
     dtype=tf.float32)
 # shape = (batch x sentence, 2 x char_hidden_size)
 output = tf.concat([output_fw, output_bw], axis=-1)
@@ -146,13 +146,8 @@ char_rep = tf.reshape(output, shape=[-1, s[1], 2*char_hidden_size])
 word_embeddings = tf.concat([pretrained_embeddings, char_rep], axis=-1)
 ```
 
-> A special note on `tf.nn.bidirectional_dynamic_rnn` and the `LSTMCell`. You may have noticed that we use the "same" instance of the cell for the forward and backward. However, due to the fact that the parameters of the cell are initialized in the `__call__` method of the cell and that this method is called in 2 different scopes (created by `bidirectional_dynamic_rnn`), we end up with cells with distinct parameters. While this behavior is a good safeguard, it could be unpractical in some corner cases. Imagine for instance that we want to use the same cell for forward and backward...
 
-EDIT: 
-
-> Big changes to the `RNNCell`, to quote TF 1.2 release note: "RNNCell objects now subclass tf.layers.Layer. The strictness described in the TensorFlow 1.1 release is gone: The first time an RNNCell is used, it caches its scope. All future uses of the RNNCell will reuse variables from that same scope. This is a breaking change from the behavior of RNNCells in TensorFlow versions <= 1.0.1. TensorFlow 1.1 had checks in place to ensure old code works correctly with the new semantics; this version allows more flexible uses of RNNCell but can lead to subtle errors if using code meant for TensorFlow <= 1.0.1. For example, writing: MultiRNNCell([lstm] * 5) will now build a 5-layer LSTM stack where each layer shares the same parameters. To get 5 layers each with their own parameters, write: MultiRNNCell([LSTMCell(...) for _ in range(5)]). If at all unsure, first test your code with TF 1.1; ensure it raises no errors, and then upgrade to TF 1.2."
-
-> Also note the use of the special argument `sequence_length` that ensures that the last state that we get is the last **valid** state. Thanks to this argument, for the unvalid time steps, the `dynamic_rnn` passes the state through and outputs a vector of zeros.
+> Note the use of the special argument `sequence_length` that ensures that the last state that we get is the last **valid** state. Thanks to this argument, for the unvalid time steps, the `dynamic_rnn` passes the state through and outputs a vector of zeros.
 
 
 ### Contextual Word Representation
@@ -160,7 +155,7 @@ EDIT:
 Once we have our word representation $ w $, we simply run a LSTM (or bi-LSTM) over the sequence of word vectors and obtain another sequence of vectors (the hidden states of the LSTM or the concatenation of the two hidden states in the case of a bi-LSTM), $ h \in \mathbb{R}^k $.
 
 
-{% include image.html url="/assets/bi-lstm.png" 
+{% include image.html url="/assets/bi-lstm.png"
 description="Bidirectional LSTM on top of word representation to extract contextual representation of each word" %}
 
 The tensorflow code is straightfoward. This time we use the hidden states of each time step and not just the final states. Thus, we had as input a sequence of $ m $ word vectors $ w_1, \ldots, w_m \in \mathbb{R}^n $ and now we have a sequence of vectors $ h_1, \ldots, h_m \in \mathbb{R}^k $. Whereas the $ w_t $ only captured information at the word level (syntax and semantics), the $ h_t $ also take context into account.
@@ -170,8 +165,8 @@ The tensorflow code is straightfoward. This time we use the hidden states of eac
 cell_fw = tf.contrib.rnn.LSTMCell(hidden_size)
 cell_bw = tf.contrib.rnn.LSTMCell(hidden_size)
 
-(output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, 
-    cell_bw, word_embeddings, sequence_length=sequence_lengths, 
+(output_fw, output_bw), _ = tf.nn.bidirectional_dynamic_rnn(cell_fw,
+    cell_bw, word_embeddings, sequence_length=sequence_lengths,
     dtype=tf.float32)
 
 context_rep = tf.concat([output_fw, output_bw], axis=-1)
@@ -184,10 +179,10 @@ context_rep = tf.concat([output_fw, output_bw], axis=-1)
 Let's say we have $ 9 $ classes. We take a matrix $ W \in \mathbb{R}^{9 \times k} $ and $ b \in \mathbb{R}^9 $ and compute a vector of scores $ s \in \mathbb{R}^9 = W \cdot h + b $. We can interpret the $ i $-th component of $ s $ (that we will refer to as $ s[i] $) as the score of class $ i $ for word $ w $. One way to do this in tensorflow is:
 
 ```python
-W = tf.get_variable("W", shape=[2*self.config.hidden_size, self.config.ntags], 
+W = tf.get_variable("W", shape=[2*self.config.hidden_size, self.config.ntags],
                 dtype=tf.float32)
 
-b = tf.get_variable("b", shape=[self.config.ntags], dtype=tf.float32, 
+b = tf.get_variable("b", shape=[self.config.ntags], dtype=tf.float32,
                 initializer=tf.zeros_initializer())
 
 ntime_steps = tf.shape(context_rep)[1]
@@ -206,16 +201,16 @@ Here we have two options:
 
 - **softmax**: normalize the scores into a vector $ p \in \mathbb{R}^9 $ such that $ p[i]= \frac{e^{s[i]}}{\sum_{j=1}^9 e^{s[j]}} $. Then, $ p_i $ can be interpreted as the probability that the word belongs to class $ i $ (positive, sum to 1). Eventually, the probability $ \mathbb{P}(y) $ of a sequence of tag $ y $ is the product $ \prod_{t=1}^m p_t [y_t] $.
 
-- **linear-chain CRF**: the first method makes local choices. In other words, even if we capture some information from the context in our $ h $ thanks to the bi-LSTM, the tagging decision is still local. We don't make use of the neighbooring tagging decisions. For instance, in `New York`, the fact that we are tagging `York` as a location should help us to decide that `New` corresponds to the beginning of a location. Given a sequence of words $ w_1, \ldots, w_m $, a sequence of score vectors $ s_1, \ldots, s_m $ and a sequence of tags $ y_1, \ldots, y_m $, a linear-chain CRF defines a global score $ C \in \mathbb{R} $ such that 
+- **linear-chain CRF**: the first method makes local choices. In other words, even if we capture some information from the context in our $ h $ thanks to the bi-LSTM, the tagging decision is still local. We don't make use of the neighbooring tagging decisions. For instance, in `New York`, the fact that we are tagging `York` as a location should help us to decide that `New` corresponds to the beginning of a location. Given a sequence of words $ w_1, \ldots, w_m $, a sequence of score vectors $ s_1, \ldots, s_m $ and a sequence of tags $ y_1, \ldots, y_m $, a linear-chain CRF defines a global score $ C \in \mathbb{R} $ such that
 
-$$ 
+$$
 \begin{align*}
 C(y_1, \ldots, y_m) &= b[y_1] &+ \sum_{t=1}^{m} s_t [y_t] &+ \sum_{t=1}^{m-1} T[y_{t}, y_{t+1}] &+ e[y_m]\\
                     &= \text{begin} &+ \text{scores} &+ \text{transitions} &+ \text{end}
 \end{align*}
 $$
 
-where $ T $ is a transition matrix in $ \mathbb{R}^{9 \times 9} $ and $ e, b \in \mathbb{R}^9 $ are vectors of scores that capture the cost of beginning or starting with a given tag. The use of the matrix $ T $ captures linear (one step) dependencies between tagging decisions. 
+where $ T $ is a transition matrix in $ \mathbb{R}^{9 \times 9} $ and $ e, b \in \mathbb{R}^9 $ are vectors of scores that capture the cost of beginning or starting with a given tag. The use of the matrix $ T $ captures linear (one step) dependencies between tagging decisions.
 
 {% include double-image.html url1="/assets/crf1.png" caption1="The path PER-O-LOC has a score of $1+10+4+3+2+11+0=31$"
 url2="/assets/crf2.png" caption2="The path PER-PER-LOC has a score of $ 1+10+2+4-2+11+0=26 $"
@@ -228,12 +223,12 @@ Now that we understand the scoring function of the CRF, we need to do 2 things:
 
 > "This sounds awesome, but don't we have a computational problem as the number of possible tag choices is exponential?"
 
-**Finding the best sequence**  Well, you're right. We cannot reasonnably imagine to compute the scores of all the $ 9^m $ tagging choices to choose the best one or even normalize each sequence score into a propability. 
+**Finding the best sequence**  Well, you're right. We cannot reasonnably imagine to compute the scores of all the $ 9^m $ tagging choices to choose the best one or even normalize each sequence score into a propability.
 
 Luckily, the recurrent nature of our formula makes it the perfect candidate to apply dynamic programming. Let's suppose that we have the solution $ \tilde{s}_{t+1} (y^{t+1}) $ for time steps $ t+1, \ldots, m $ for sequences that start with $ y^{t+1} $ for each of the 9 possible $ y^{t+1} $. Then, the solution $ \tilde{s}_t(y_t) $ for time steps $ t, \ldots, m $ that starts with $ y_t $ verifies
 
 
-$$ 
+$$
 \begin{align*}
 \tilde{s}_t(y_t) &= \operatorname{argmax}_{y_t, \ldots, y_m} C(y_t, \ldots, y_m)\\
             &= \operatorname{argmax}_{y_{t+1}} s_t [y_t] + T[y_{t}, y_{t+1}] + \tilde{s}_{t+1}(y^{t+1})
@@ -249,7 +244,7 @@ $$ Z = \sum_{y_1, \ldots, y_m} e^{C(y_1, \ldots, y_m)} $$
 
 which is the sum of the scores of all possible sequences. We can apply the same idea as above, but instead of taking the argmax, we sum over all possible paths. Let's call $ Z_t(y_t) $ the sum of scores for all sequences that start at time step $ t $ with tag $ y_t $. Then, $ Z_t $ verifies
 
-$$ 
+$$
 \begin{align*}
 Z_t(y_t)       &= \sum_{y_{t+1}} e^{s_t[y_t] + T[y_{t}, y_{t+1}]} \sum_{y_{t+2}, \ldots, y_m} e^{C(y_{t+1}, \ldots, y_m)} \\
                &= \sum_{y_{t+1}} e^{s_t[y_t] + T[y_{t}, y_{t+1}]} \ Z_{t+1}(y_{t+1})\\
@@ -258,18 +253,18 @@ Z_t(y_t)       &= \sum_{y_{t+1}} e^{s_t[y_t] + T[y_{t}, y_{t+1}]} \sum_{y_{t+2},
 $$
 
 
-Then, we can easily define the probability of a given sequence of tags as 
+Then, we can easily define the probability of a given sequence of tags as
 
 $$ \mathbb{P}(y_1, \ldots, y_m) = \frac{e^{C(y_1, \ldots, y_m)}}{Z} $$
 
 
 ## Training
 
-Now that we've explained the architecture of our model and spent some time on CRFs, a final word on our objective function. We are gonna use cross-entropy loss, in other words our loss is 
+Now that we've explained the architecture of our model and spent some time on CRFs, a final word on our objective function. We are gonna use cross-entropy loss, in other words our loss is
 
 $$ - \log (\mathbb{P}(\tilde{y})) $$
 
-where $ \tilde{y} $ is the correct sequence of tags and its probability $$ \mathbb{P} $$ is given by 
+where $ \tilde{y} $ is the correct sequence of tags and its probability $$ \mathbb{P} $$ is given by
 - **CRF**: $ \mathbb{P}(\tilde{y}) = \frac{e^{C(\tilde{y})}}{Z} $
 - **local softmax**: $ \mathbb{P}(\tilde{y}) = \prod p_t[\tilde{y}^t] $.
 
@@ -299,7 +294,7 @@ losses = tf.boolean_mask(losses, mask)
 loss = tf.reduce_mean(losses)
 ```
 
-And then, finally, we can define our train operator as 
+And then, finally, we can define our train operator as
 
 ```python
 optimizer = tf.train.AdamOptimizer(self.lr)
@@ -314,7 +309,7 @@ For the local softmax method, performing the final prediction is straightfoward,
 labels_pred = tf.cast(tf.argmax(self.logits, axis=-1), tf.int32)
 ```
 
-For the CRF, we have to use dynamic programming, as explained above. Again, this only take one line with tensorflow! 
+For the CRF, we have to use dynamic programming, as explained above. Again, this only take one line with tensorflow!
 
 > This function is pure 'python', as we get as argument the `transition_params`. The tensorflow `Session()` evaluates `score` (= the $ s_t $ ), that's all. Pay attention that this makes the prediction for only one sample!
 
@@ -327,8 +322,13 @@ viterbi_sequence, viterbi_score = tf.contrib.crf.viterbi_decode(
                                 score, transition_params)
 ```
 
+
 With the previous code you should get an F1 score close between 90 and 91!
+
 
 ## Conclusion
 
 Tensorflow makes it really easy to implement any kind of deep learning system, as long as the layer you're looking for is already implemented. However, you'll still have to go to deeper levels if you're trying something new...
+
+
+{% include api_form.html url="http://127.0.0.1:8080/api" placeholder="I love Paris"%}

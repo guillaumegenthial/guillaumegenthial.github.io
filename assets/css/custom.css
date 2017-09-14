@@ -1,0 +1,28 @@
+.center-image
+{
+    margin: auto;
+    display: block;
+    max-width: 70%;
+}
+
+p {
+    text-align: justify;
+}
+
+li {
+    text-align: justify;
+}
+
+.api-pre {
+    display: inline-block;
+    font-family: monospace;
+    margin: 0 0 0px;
+    font-size: 15px;
+    line-height: 0.5;
+    /*color: #333;*/
+    word-break: break-all;
+    word-wrap: break-word;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0px;
+}
