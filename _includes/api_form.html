@@ -19,11 +19,7 @@
 </div>
 
 <script type="text/javascript">
-    $(() => {
-    $('#btn').click(() => {
-        // get the input data
-        var input = $("#input").val();
-
+    function api_call(input) {
         // hide button and make the spinner appear
         $('#btn').toggle();
         $('#spinner').toggle();
@@ -33,24 +29,46 @@
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(input),
+
             success: function( data, textStatus, jQxhr ){
                 // toggle the spinner and button
                 $('#btn').toggle();
                 $('#spinner').toggle();
 
-
                 // fill the html for answer
                 $('#api_input').html( data.input );
                 $('#api_output').html( data.output );
 
-                input = "";
                 $("#input").val("");
             },
             error: function( jqXhr, textStatus, errorThrown ){
+                $('#btn').toggle();
+                $('#spinner').toggle();
+
+                $('#api_input').html( "Sorry, the server is asleep..." );
+                $('#api_output').html( "Try again in a moment!" );
+
                 console.log( errorThrown );
-            }
+            },
+            timeout: 3000 // sets timeout to 10 seconds
         });
+
+    }
+
+
+    $( document ).ready(function() {
+        // send one request for everyone loading the page to keep the dyno awake
+        var input = "I love Paris";
+        api_call(input);
+        input = "";
+
+        // request when clicking on the button
+        $('#btn').click(function() {
+            // get the input data
+            var input = $("#input").val();
+            api_call(input);
+            input = "";
     });
-});
+    });
 
 </script>
