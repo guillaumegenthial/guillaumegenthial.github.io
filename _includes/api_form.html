@@ -4,6 +4,10 @@
         <div class="card-body">
             <input class="card-title form-control" type="text" id="input" name="input" placeholder="{{ include.placeholder }}"/>
             <button class="card-text btn btn-outline-primary" id="btn">Find Entities</button>
+            <div class="spinner" id="spinner" style="display: none">
+              <div class="double-bounce1"></div>
+              <div class="double-bounce2"></div>
+            </div>
         </div>
         <div class="card-footer bg-white">
             <pre class="card-text api-pre" style="padding-bottom: 0.2cm">
@@ -20,12 +24,21 @@
         // get the input data
         var input = $("#input").val();
 
+        // hide button and make the spinner appear
+        $('#btn').toggle();
+        $('#spinner').toggle();
+
         $.ajax({
             url: "{{ include.url }}",
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(input),
             success: function( data, textStatus, jQxhr ){
+                // toggle the spinner and button
+                $('#btn').toggle();
+                $('#spinner').toggle();
+
+
                 // fill the html for answer
                 $('#api_input').html( data.input );
                 $('#api_output').html( data.output );

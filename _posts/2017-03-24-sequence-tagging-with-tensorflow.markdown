@@ -14,6 +14,7 @@ Code is available on [github](https://github.com/guillaumegenthial/sequence_tagg
 ## Demo
 
 Nothing is better than a demo to generate interest.
+
 {% include api_form.html
     placeholder="I love Paris"
     default_input="I love Paris"
@@ -22,7 +23,7 @@ Nothing is better than a demo to generate interest.
     url="https://api-ner.herokuapp.com/api"
 %}
 
-**Disclaimer:** as you may notice, the tagger is far from being perfect. Some errors are due to the fact that the demo uses a reduced vocabulary (lighter for the API). But not all. Named Entity Recognition is not a solved problem yet...
+**Disclaimer:** as you may notice, the tagger is far from being perfect. Some errors are due to the fact that the demo uses a reduced vocabulary (lighter for the API). But not all. Named Entity Recognition is not a solved problem yet. You may also have to wait for the server to warm-up.
 
 ## Introduction
 
