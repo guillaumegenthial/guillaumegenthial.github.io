@@ -1,17 +1,19 @@
 
-<div class="card text-center">
-    <div class="card-header">
-        {{ include.header }}
-    </div>
-    <div class="card-body">
-        <input class="card-title form-control" type="text" id="input" name="input" placeholder="{{ include.placeholder }}"/>
-        <button class="card-text btn btn-primary" id="btn">Find Entities</button>
-    </div>
-    <div class="card-body">
-        <pre class="card-text api-pre">
-            <div class="item" id="api_input"> {{ include.default_input }} </div>
-            <div class="item" id="api_output"> {{ include.default_output }} </div>
-        </pre>
+<div style="padding-bottom: 0.5cm">
+    <div class="card text-center">
+        <div class="card-header">
+            {{ include.header }}
+        </div>
+        <div class="card-body">
+            <input class="card-title form-control" type="text" id="input" name="input" placeholder="{{ include.placeholder }}"/>
+            <button class="card-text btn btn-primary" id="btn">Find Entities</button>
+        </div>
+        <div class="card-body">
+            <pre class="card-text api-pre">
+                <div class="item" id="api_input"> {{ include.default_input }} </div>
+                <div class="item" id="api_output"> {{ include.default_output }} </div>
+            </pre>
+        </div>
     </div>
 </div>
 
