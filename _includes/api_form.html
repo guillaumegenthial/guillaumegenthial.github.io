@@ -1,7 +1,7 @@
 
 <div class="card text-center">
     <div class="card-header">
-        Interact with the model!
+        {{ include.header }}
     </div>
     <div class="card-body">
         <input class="card-title form-control" type="text" id="input" name="input" placeholder="{{ include.placeholder }}"/>
@@ -9,8 +9,8 @@
     </div>
     <div class="card-body">
         <pre class="card-text api-pre">
-            <div id="api_input">I love Paris</div>
-            <div id="api_output">O O    B-LOC</div>
+            <div id="api_input"> {{ include.default_input }} </div>
+            <div id="api_output"> {{ include.default_output }} </div>
         </pre>
     </div>
 </div>

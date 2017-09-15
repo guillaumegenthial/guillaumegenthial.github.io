@@ -330,5 +330,12 @@ With the previous code you should get an F1 score close between 90 and 91!
 
 Tensorflow makes it really easy to implement any kind of deep learning system, as long as the layer you're looking for is already implemented. However, you'll still have to go to deeper levels if you're trying something new...
 
+You can interact with a light version of the model (small vocabulary), hosted on [heroku](http://heroku.com/). It can take some time to warm-up, so be patient.
 
-{% include api_form.html url="http://127.0.0.1:8080/api" placeholder="I love Paris"%}
+{% include api_form.html
+    placeholder="I love Paris"
+    default_input="I love Paris"
+    default_output="O O    B-LOC"
+    header="Interact with the model!"
+    url="https://api-ner.herokuapp.com/api"
+    %}
