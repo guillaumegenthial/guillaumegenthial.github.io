@@ -24,11 +24,11 @@ li {
     line-height: normal;
     color: #333;
     word-break: break-all;
-    word-wrap: break-word;
+    word-wrap: normal;
     background-color: transparent;
     border: 0;
     border-radius: 0px;
-    overflow-x: auto;
+    overflow: auto;
     padding-top: 10px;
     padding: 0;
 }
