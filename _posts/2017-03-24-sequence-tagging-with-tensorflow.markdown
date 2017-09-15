@@ -22,6 +22,7 @@ Nothing is better than a demo to generate interest.
     url="https://api-ner.herokuapp.com/api"
 %}
 
+**Disclaimer:** as you may notice, the tagger is far from being perfect. Some errors are due to the fact that the demo uses a reduced vocabulary (lighter for the API). But not all. Named Entity Recognition is not a solved problem yet...
 
 ## Introduction
 
