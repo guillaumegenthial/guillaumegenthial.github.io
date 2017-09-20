@@ -13,7 +13,7 @@ Code is available on [github](https://github.com/guillaumegenthial/sequence_tagg
 
 ## Demo
 
-Nothing is better than a demo to generate interest.
+Enter sentences like `Monica and Chandler met at Central Perk`, `Obama was president of the United States`, `John went to New York to interview with Microsoft` and then hit the button.
 
 {% include api_form.html
     placeholder="I love Paris"
