@@ -15,7 +15,7 @@ Code is available on [github](https://github.com/guillaumegenthial/sequence_tagg
 
 Enter sentences like `Monica and Chandler met at Central Perk`, `Obama was president of the United States`, `John went to New York to interview with Microsoft` and then hit the button.
 
-{% include api_form.html
+{% include api_ner.html
     placeholder="I love Paris"
     default_input="I love Paris"
     default_output="O O    B-LOC"

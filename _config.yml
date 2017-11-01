@@ -15,7 +15,7 @@
 # in the templates via {{ site.myvariable }}.
 title: Guillaume Genthial blog
 email: ""
-description: "Attempt to share some of my experience in NLP and AI"
+description: "Natural Language Processing and AI"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://guillaumegenthial.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  guillaumegenthial
