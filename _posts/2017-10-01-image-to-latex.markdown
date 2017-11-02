@@ -36,7 +36,7 @@ Good Tensorflow implementations of such models were hard to find. Together with 
 
 ## Sequence to Sequence basics
 
-Let's explain the sequence to sequence framework as we'll rely on it for our model. Let's start with the simplest version on the tranlation task. As an example, let's translate `how are you` in French `comment ça va`.
+Let's explain the sequence to sequence framework as we'll rely on it for our model. Let's start with the simplest version on the tranlation task. As an example, let's translate `how are you` in French `comment vas tu`.
 
 ### Vanilla Seq2Seq
 
@@ -77,11 +77,43 @@ The decoding stops when the predicted word is a special *end of sentence* token.
 
 ### Seq2Seq with Attention
 
-The previous model has been refined over the past few years and greatly benefited from what is known as __attention__. Attention is a mechanism that forces the model to learn to focus on specific parts of the input sequence when decoding, instead of relying only on the hidden vector of the decoder's LSTM. One way of performing attention is explained by [Bahdanau et al.](https://arxiv.org/abs/1409.0473).
+The previous model has been refined over the past few years and greatly benefited from what is known as __attention__. Attention is a mechanism that forces the model to learn to focus (=to attend) on specific parts of the input sequence when decoding, instead of relying only on the hidden vector of the decoder's LSTM. One way of performing attention is explained by [Bahdanau et al.](https://arxiv.org/abs/1409.0473). We slightly modify the reccurrence formula that we defined above by adding a new vector $ c_t $ to the input of the LSTM
 
-TODO explain attention
 
-TODO attention matrix (alignment)
+$$
+\begin{align*}
+h_{t}, s_t &= \operatorname{LSTM}\left(h_{t-1}, [w_{i_{t-1}}, c_t] \right)\\
+p_t &= \operatorname{softmax}(s_t)\\
+i_t &= \operatorname{argmax}(p_t)
+\end{align*}$$
+
+The vector $ c_t $ is the attention (or __context__) vector. We compute a new context vector at each decoding step. First, with a function $ f (h_{t-1}, e_{t'}) \mapsto \alpha_{t'} \in \mathbb{R} $, we compute a score for each hidden state $ e_{t'} $ of the encoder. We then normalize the sequence of $ \alpha{t'} $ using a softmax and compute $ c_t $ as the weighted average of the $ e_{t'} $. In other words, we perform the following operations
+
+$$
+\begin{align*}
+\alpha_{t'} &= f(h_{t-1}, e_{t'})  \in \mathbb{R} & \text{for all } t'\\
+\bar{\alpha} &= \operatorname{softmax} (\alpha)\\
+c_t &= \sum_{t'=0}^n \bar{\alpha}_{t'} e_{t'}
+\end{align*}
+$$
+
+{% include image.html url="/assets/img2latex/attention_mechanism.svg" description="Attention Mechanism" size="100%" %}
+
+
+The choice of the function $ f $ varies, but is usually one of the following
+
+$$
+f(h_{t-1}, e_{t'}) =
+\begin{cases}
+h_{t-1}^T e_{t'}\\
+h_{t-1}^T W e_{t'}\\
+w^T [h_{t-1}, e_{t'}]\\
+\end{cases}
+$$
+
+It turns out that the attention weighs $ \bar{\alpha} $ can be easily interpreted. When generating the word `vas` (corresponding to `are` in English), we expect the $ \bar{\alpha} $ of `are` to be close to $ 1 $ while the ones for `how` and `you` to be close to $ 0 $. Intuitively, the context vector $ c $ will be roughly equal to the hidden vector of `are` and it will help to generate the French word `vas`.
+
+By putting the attention weights into a matrix (rows = input sequence, columns = output sequence), we would have access to the __alignment__ between the words from the English and French sentences... There are still a lot of things to say about sequence to sequence models (for instance, it works better if the encoder processes the input sequence *backwards*...) but we know enough to get started on our LaTeX generation problem.
 
 
 ## Data
@@ -124,17 +156,217 @@ We also build a vocabulary, to map LaTeX tokens to indices that will be given as
 
 ## Model
 
+Our model is going to rely on a variation of the Seq2Seq model, adapted to images. First, let's define the input of our graph. Not surprisingly we get as input a batch of black-and-white images of shape $ [H, W] $ and a batch of formulas (ids of the LaTeX tokens):
+
+```python
+# batch of images, shape = (batch size, height, width, 1)
+img = tf.placeholder(tf.uint8, shape=(None, None, None, 1), name='img')
+# batch of formulas, shape = (batch size, length of the formula)
+formula = tf.placeholder(tf.int32, shape=(None, None), name='formula')
+# for padding
+formula_length = tf.placeholder(tf.int32, shape=(None, ), name='formula_length')
+```
+
+
+> A special note on the type of the image input. You may have noticed that we use `tf.uint8`. This is because our image is encoded in grey-levels (integers from `0` to `255` - and $ 2^8 = 256 $). Even if we could give a `tf.float32` Tensor as input to Tensorflow, this would be 4 times more expensive in terms of memory bandwith. It turns out that data starvation is one of the main bottlenecks of GPUs, thus this simple trick can save us some computation time.
+
 ### Encoder
 
-TODO explain the encoder (cnn + positional embeddings) + Tensorflow code
+We need to extract features from our image, and for this, nothing has (yet) been proven more effective than convolutions. Here, there is nothing much to say except that we pick some architecture that has been proven to be effective for Optical Character Recognition (OCR), which stacks convolutional layers and max-pooling to produce a Tensor of shape $ [H', W', 512] $
+
+
+```python
+# casting the image back to float32 on the GPU
+img = tf.cast(img, tf.float32) / 255.
+
+out = tf.layers.conv2d(img, 64, 3, 1, "SAME", activation=tf.nn.relu)
+out = tf.layers.max_pooling2d(out, 2, 2, "SAME")
+
+out = tf.layers.conv2d(out, 128, 3, 1, "SAME", activation=tf.nn.relu)
+out = tf.layers.max_pooling2d(out, 2, 2, "SAME")
+
+out = tf.layers.conv2d(out, 256, 3, 1, "SAME", activation=tf.nn.relu)
+
+out = tf.layers.conv2d(out, 256, 3, 1, "SAME", activation=tf.nn.relu)
+out = tf.layers.max_pooling2d(out, (2, 1), (2, 1), "SAME")
+
+out = tf.layers.conv2d(out, 512, 3, 1, "SAME", activation=tf.nn.relu)
+out = tf.layers.max_pooling2d(out, (1, 2), (1, 2), "SAME")
+
+# encoder representation, shape = (batch size, height', width', 512)
+out = tf.layers.conv2d(out, 512, 3, 1, "VALID", activation=tf.nn.relu)
+```
+
+Now that we have extracted some features from the image, let's __unfold__ the image to get a sequence so that we can use our sequence to sequence framework. We end up with a sequence of length $ [H' \times W'] $
+
+```python
+H, W = tf.shape(out)[1:2]
+seq = tf.reshape(out, shape=[-1, H*W, 512])
+```
+
+
+> Don't you loose a lot of structural information by reshaping? I'm afraid that when performing attention over the image, my decoder won't be able to understand the location of each feature vector in the original image!
+
+It turns out that the model manages to work despite this issue, but that's not completely satisfying. In the case of translation, the hidden states of the LSTM contained some positional information that was computed by the LSTM (after all, LSTM are by essence sequential). Can we fix this issue?
+
+__Positional Embeddings__ I decided to follow the idea from [Attention is All you Need](https://arxiv.org/abs/1706.03762) that adds *positional embeddings* to the image representation (`out`), and has the huge advantage of not adding any new trainable parameter to our model. The idea is that for each position of the image, we compute a vector of size $ 512 $ such that its components are $ \cos $ or $ \sin $. More formally, the (2i)-th and (2i+1)-th entries of my positional embedding $ v $ at position $ p $ will be
+
+$$
+\begin{align*}
+v_{2i} &= \sin\left(p / f^{2i}\right)\\
+v_{2i+1} &= \cos\left(p / f^{2i}\right)\\
+\end{align*}
+$$
+
+where $ f $ is some frequency parameter. Intuitively, because $ \sin(a+b) $ and $ \cos(a+b) $ can be expressed in terms of $ \sin(b)$ , $ \sin(a)$ , $ \cos(b)$  and $ \cos (a) $, there will be linear dependencies between the components of distant embeddings, authorizing the model to extract relative positioning information. Good news: the tensorflow code for this technique is available in the library [tensor2tensor](https://github.com/tensorflow/tensor2tensor), so we just need to reuse the same function and transform our `out` with the following call
+
+```python
+out = add_timing_signal_nd(out)
+```
 
 ### Decoder
 
-TODO explain input vector of LSTM (like in Show Attend and Tell) + Tensorflow code
+Now that we have a sequence of vectors $ [e_1, \dots, e_n] $ that represents our input image, let's decode it! First, let's explain what variant of the Seq2Seq framework we are going to use.
 
-TODO explain attention
+__First hidden vector of the decoder's LSTM__ In the seq2seq framework, this is usually just the last hidden vector of the encoder's LSTM. Here, we don't have such a vector, so a good choice would be to learn to compute it with a matrix $ W $ and a vector $ b $
 
-## Training
+$$
+h_0 = \tanh\left( W \cdot \left( \frac{1}{n} \sum_{i=1}^n e_i\right) + b \right)
+$$
+
+This can be done in Tensorflow with the following logic
+
+```python
+img_mean = tf.reduce_mean(seq, axis=1)
+W = tf.get_variable("W", shape=[512, 512])
+b = tf.get_variable("b", shape=[512])
+h = tf.tanh(tf.matmul(img_mean, W) + b)
+```
+
+
+__Attention Mechanism__ We first need to compute a score $ \alpha_{t'} $ for each vector $ e_{t'} $ of the sequence. Let's use this function that proved to be efficient according to numerous papers
+
+$$
+\begin{align*}
+\alpha_{t'} &= \beta^T \tanh\left( W_1 \cdot e_{t'} + W_2 \cdot h_{t-1}  \right)\\
+\bar{\alpha} &= \operatorname{softmax}\left(\alpha\right)\\
+c_t &= \sum_{i=1}^n \bar{\alpha}_{t'} e_{t'}\\
+\end{align*}
+$$
+
+This can be done in Tensorflow with the follwing code
+
+```python
+# over the image, shape = (batch size, n, 512)
+W1_e = tf.layers.dense(inputs=seq, units=512, use_bias=False)
+# over the hidden vector, shape = (batch size, 512)
+W2_h = tf.layers.dense(inputs=h, units=512, use_bias=False)
+
+# sums the two contributions
+a = tf.tanh(W1_e + tf.expand_dims(W2_h, axis=1))
+beta = tf.get_variable("beta", shape=[512, 1], dtype=tf.float32)
+a_flat = tf.reshape(a, shape=[-1, 512])
+a_flat = tf.matmul(a_flat, beta)
+a = tf.reshape(a, shape=[-1, n])
+
+# compute weights
+a = tf.nn.softmax(a)
+a = tf.expand_dims(a, axis=-1)
+c = tf.reduce_sum(a * seq, axis=1)
+```
+
+> Note that the line `W1_e = tf.layers.dense(inputs=seq, units=512, use_bias=False)` is common to every decoder time step, so we can just compute it once and for all. Note that the dense layer with no bias is just a matrix multiplication.
+
+Now that we have our attention vector, let's just add a small modification and compute an other vector $ o_t $ that we will use to make our final prediction and that we will feed as input to the LSTM for the next step. Here $ w_{t-1} $ denotes the embedding of the token generated at the previous step.
+
+$$
+\begin{align*}
+o_t &= \tanh\left(W_3 \cdot [h_{t-1}, c_t] \right)\\
+p_t &= \operatorname{softmax}\left(W_4 \cdot o_t \right)\\
+h_t &= \operatorname{LSTM}\left( h_{t-1}, [w_{t-1}, o_{t-1}] \right)
+\end{align*}
+$$
+
+and now the code
+
+```python
+# compute o
+W3_o = tf.layers.dense(inputs=tf.concat([h, c], axis=-1), units=512, use_bias=False)
+o = tf.tanh(W3_o)
+
+# compute the logits scores (before softmax)
+logits = tf.layers.dense(inputs=o, units=vocab_size, use_bias=False)
+```
+
+
+> If I read carefully, I notice that for the first step of the decoding process, we need to compute an $ o_0 $ too, right?
+
+This is a good point, and we just use the same technique that we used to generate $ h_0 $ but with different weights!
+
+## Some Tensorflow tricks
+
+> Well, now that we've covered the essential steps, how to I make it work with the high level functions of Tensorflow like `dynamic_rnn` etc. ?
+
+We'll need to encapsulate the reccurent logic into a custom cell that inherit `RNNCell`. Our custom cell will be able to call the LSTM cell (initialized in the `__init__`). It also has a special recurrent state that combines the LSTM state and the vector $ o $ (as we need to pass this through). An elegant way is to define a namedtuple for this recurrent state:
+
+```python
+AttentionState = collections.namedtuple("AttentionState", ("lstm_state", "o"))
+
+class AttentionCell(RNNCell):
+    def __init__(self):
+        self.lstm_cell = LSTMCell(512)
+
+    def __call__(self, inputs, cell_state):
+        """
+        Args:
+            inputs: shape = (batch_size, dim_embeddings) embeddings from
+                previous time step
+            cell_state: (AttentionState) state from previous time step
+
+        """
+        lstm_state, o = cell_state
+
+        # compute h
+        h, new_lstm_state = self.lstm_cell(tf.concat([inputs, o], axis=-1), lstm_state)
+
+        #######################################################################
+        ############ compute new o and logits as explained above ##############
+        # new_o  = ...                                                        #
+        # logits = ...                                                        #
+        #######################################################################
+
+        new_state = AttentionState(new_lstm_state, new_o)
+
+        return logits, new_state
+```
+
+
+Then, to compute our output sequence, we just need to call the previous cell on the sequence of LaTeX tokens. We first produce the sequence of token embeddings to which we concatenate the special `<sos>` token. Then, we call `dynamic_rnn`.
+
+```python
+# 1. get token embeddings
+E = tf.get_variable("E", shape=[vocab_size, 80], dtype=tf.float32)
+# special <sos> token
+start_token = tf.get_variable("start_token", dtype=tf.float32, shape=[80])
+
+# 2. add the special <sos> token embedding at the beggining of every formula
+tok_embeddings = tf.nn.embedding_lookup(E, formula)
+start_token_ = tf.reshape(start_token, [1, 1, dim])
+start_tokens = tf.tile(start_token_, multiples=[batch_size, 1, 1])
+# remove the last word that won't be used because we reached the end
+tok_embeddings = tf.concat([start_tokens, tok_embeddings[:, :-1, :]], axis=1)
+
+# 3. decode
+attn_cell = AttentionCell()
+output_seq, _ = tf.nn.dynamic_rnn(attn_cell, tok_embeddings, initial_state=AttentionState(h_0, o_0))
+```
+
+
+> Are'nt you trying to fool us? If I understand the code written above, you are using your formula to predict it! In other words, you're not generating any sentence, but merely copying!
+
+That's partly right! The previous code does indeed feed into the decoder's LSTM the actual tokens of the target sequence. It will speedup the training, as errors won't accumulate. If the decoder is wrong about the first token, which is the most likely case at the beginning of the training, then, if we feed this token to the next step, the second token will have even less chance to be correct!. That's why we replace the prediction by the actual true token at training time.
+
+## Training and Testing
 
 TODO explain problem train/test and what the loss is + Tensorflow code for loss and train
 
