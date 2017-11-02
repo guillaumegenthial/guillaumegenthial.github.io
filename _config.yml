@@ -36,6 +36,11 @@ exclude:
 
 curriculum:
   - image: img/rl.png
+    title: Machine Learning
+    info: Fall 2017
+    description: Course Assistant for CS229
+    url: http://cs229.stanford.edu
+  - image: img/rl.png
     title: Reinforcement Learning
     info: Spring 2017
     description: Course Assistant for CS234

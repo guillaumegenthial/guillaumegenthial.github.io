@@ -34,9 +34,9 @@ Good Tensorflow implementations of such models were hard to find. Together with 
 
 
 
-## The Sequence to Sequence framework
+## Sequence to Sequence basics
 
-Let's explain the sequence to sequence framework as we'll rely on it for our model. Let's start with the simplest version. Our goal is to translate `how are you` in French `comment ça va`.
+Let's explain the sequence to sequence framework as we'll rely on it for our model. Let's start with the simplest version on the tranlation task. As an example, let's translate `how are you` in French `comment ça va`.
 
 ### Vanilla Seq2Seq
 
@@ -79,6 +79,11 @@ The decoding stops when the predicted word is a special *end of sentence* token.
 
 The previous model has been refined over the past few years and greatly benefited from what is known as __attention__. Attention is a mechanism that forces the model to learn to focus on specific parts of the input sequence when decoding, instead of relying only on the hidden vector of the decoder's LSTM. One way of performing attention is explained by [Bahdanau et al.](https://arxiv.org/abs/1409.0473).
 
+TODO explain attention
+
+TODO attention matrix (alignment)
+
+
 ## Data
 
 To train our model, we'll need labeled examples: images of formulas along with the LaTeX code used to generate the images. A good source of LaTeX code is [arXiv](https://arxiv.org), that has thousands of articles under the `.tex` format. After applying some heuristics to find equations in the `.tex` file, keeping only the ones that actually compile, the [Harvard NLP group](https://zenodo.org/record/56198#.WflVu0yZPLZ) extracted $ \sim 100, 000 $ formulas.
@@ -116,21 +121,27 @@ We also build a vocabulary, to map LaTeX tokens to indices that will be given as
 `{`
 `}`
 
+
 ## Model
 
 ### Encoder
 
+TODO explain the encoder (cnn + positional embeddings) + Tensorflow code
 
 ### Decoder
 
+TODO explain input vector of LSTM (like in Show Attend and Tell) + Tensorflow code
 
-### Attention
+TODO explain attention
 
+## Training
 
-### Training
-
+TODO explain problem train/test and what the loss is + Tensorflow code for loss and train
 
 ### Beam Search
 
+TODO explain beam search + Tensorflow code
 
 ## Conclusion
+
+TODO invite people to go to deeper levels of Tensorflow (TensorArrays, while_loop, nest.map_structure, custom RNNCells, etc.)
