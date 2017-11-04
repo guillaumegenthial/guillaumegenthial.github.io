@@ -20,10 +20,10 @@ As an engineering student, how many times did I ask myself
 
 This thought has been obsessing me for a long time (and I'm sure I'm not the only one) and since I've started studying at Stanford, I've been eager to tackle the problem myself. I must confess that I searched the AppStore for the perfect app, but haven't found anything. I hypothesized that the problem was not that easy and chose to wait until the amazing [computer vision class](http://cs231n.stanford.edu) to tackle the problem.
 
-{% include image.html url="/assets/img2latex/task.svg" description="Producing LaTeX code from an image" size="70%" %}
+{% include image.html url="/assets/img2latex/img2latex_task.svg" description="Producing LaTeX code from an image" size="100%" %}
 
 __The Sequence to Sequence framework__
-In my [last post](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html), I explained how to predict a tag for a word, which can be considered as a relatively simple task. However, some tasks like translation require more complicated systems. You may have heard from some recent breakthroughs in Neural Machine Translation that led to (almost) human-level performance systems (used in real-life by Google Translation, see for instance this exciting [work](https://arxiv.org/abs/1611.04558) enabling zero-shot translation). These new architectures all rely on a common paradigm called [__sequence to sequence__](https://arxiv.org/abs/1406.1078) (or __Seq2Seq__), whose goal is to produce an entire sequence of tokens. Compared to former techniques that relied on a translation model (capturing meaning of the input sequence) and a language model (modelling the distribution of words in the output sequence), this framework is more flexible, as it can generate an arbitrary-length sequence after having read the input sequence, while leveraging the flexibility of Deep Learning models (end-to-end training with scalability to any type of input).
+In my [last post](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html) about named entity recognition, I explained how to predict a tag for a word, which can be considered as a relatively simple task. However, some tasks like translation require more complicated systems. You may have heard from some recent breakthroughs in Neural Machine Translation that led to (almost) human-level performance systems (used in real-life by Google Translation, see for instance this exciting [work](https://arxiv.org/abs/1611.04558) enabling zero-shot translation). These new architectures all rely on a common paradigm called [__sequence to sequence__](https://arxiv.org/abs/1406.1078) (or __Seq2Seq__), whose goal is to produce an entire sequence of tokens. Compared to former techniques that relied on a translation model (capturing meaning of the input sequence) and a language model (modelling the distribution of words in the output sequence), this framework is more flexible, as it can generate an arbitrary-length sequence after having read the input sequence, while leveraging the flexibility of Deep Learning models (end-to-end training with scalability to any type of input).
 
 > This problem is about producing a sequence of tokens from an image, and is thus at the intersection of Computer Vision and Natural Language Processing.
 
@@ -87,7 +87,7 @@ p_t &= \operatorname{softmax}(s_t)\\
 i_t &= \operatorname{argmax}(p_t)
 \end{align*}$$
 
-The vector $ c_t $ is the attention (or __context__) vector. We compute a new context vector at each decoding step. First, with a function $ f (h_{t-1}, e_{t'}) \mapsto \alpha_{t'} \in \mathbb{R} $, we compute a score for each hidden state $ e_{t'} $ of the encoder. We then normalize the sequence of $ \alpha{t'} $ using a softmax and compute $ c_t $ as the weighted average of the $ e_{t'} $. In other words, we perform the following operations
+The vector $ c_t $ is the attention (or __context__) vector. We compute a new context vector at each decoding step. First, with a function $ f (h_{t-1}, e_{t'}) \mapsto \alpha_{t'} \in \mathbb{R} $, we compute a score for each hidden state $ e_{t'} $ of the encoder. We then normalize the sequence of $ \alpha_{t'} $ using a softmax and compute $ c_t $ as the weighted average of the $ e_{t'} $. In other words, we perform the following operations
 
 $$
 \begin{align*}
@@ -97,7 +97,7 @@ c_t &= \sum_{t'=0}^n \bar{\alpha}_{t'} e_{t'}
 \end{align*}
 $$
 
-{% include image.html url="/assets/img2latex/attention_mechanism.svg" description="Attention Mechanism" size="100%" %}
+{% include image.html url="/assets/img2latex/seq2seq_attention_mechanism.svg" description="Attention Mechanism" size="100%" %}
 
 
 The choice of the function $ f $ varies, but is usually one of the following
@@ -118,11 +118,11 @@ By putting the attention weights into a matrix (rows = input sequence, columns =
 
 ## Data
 
-To train our model, we'll need labeled examples: images of formulas along with the LaTeX code used to generate the images. A good source of LaTeX code is [arXiv](https://arxiv.org), that has thousands of articles under the `.tex` format. After applying some heuristics to find equations in the `.tex` file, keeping only the ones that actually compile, the [Harvard NLP group](https://zenodo.org/record/56198#.WflVu0yZPLZ) extracted $ \sim 100, 000 $ formulas.
+To train our model, we'll need labeled examples: images of formulas along with the LaTeX code used to generate the images. A good source of LaTeX code is [arXiv](https://arxiv.org), that has thousands of articles under the `.tex` format. After applying some heuristics to find equations in the `.tex` files, keeping only the ones that actually compile, the [Harvard NLP group](https://zenodo.org/record/56198#.WflVu0yZPLZ) extracted $ \sim 100, 000 $ formulas.
 
 > Wait... Don't you have a problem as different LaTeX codes can give the same equation?
 
-Good point: `(x^2 + 1)` and `\left( x^{2} + 1 \right)` indeed give the same output. That's why Harvard's paper found out that normalizing the data using a parser ([KaTeX](https://khan.github.io/KaTeX/)) improved performance. It forces adoption of some conventions, like writing `x ^ { 2 }` instead of `x^2`, etc. After normalization, they end up with a `.txt` file that looks like
+Good point: `(x^2 + 1)` and `\left( x^{2} + 1 \right)` indeed give the same output. That's why Harvard's paper found out that normalizing the data using a parser ([KaTeX](https://khan.github.io/KaTeX/)) improved performance. It forces adoption of some conventions, like writing `x ^ { 2 }` instead of `x^2`, etc. After normalization, they end up with a `.txt` file containing one formula per line that looks like
 
 ```
 \alpha + \beta
@@ -140,7 +140,7 @@ From this file, we'll produce images `0.png`, `1.png`, etc. and a matching file 
 3.png 3
 ```
 
-The reason why we use this format is that it is flexible and allows you to use the pre-built [dataset from Harvard](https://zenodo.org/record/56198#.WflVu0yZPLZ). You will need to use the preprocessing script as explained [here](https://github.com/harvardnlp/im2markup). You'll also need to have `pdflatex` and `ImageMagick` installed.
+The reason why we use this format is that it is flexible and allows you to use the pre-built [dataset from Harvard](https://zenodo.org/record/56198#.WflVu0yZPLZ) (You may need to use the preprocessing scripts as explained [here](https://github.com/harvardnlp/im2markup)). You'll also need to have `pdflatex` and `ImageMagick` installed.
 
 We also build a vocabulary, to map LaTeX tokens to indices that will be given as input to our model. If we keep the same data as above, our vocabulary will look like
 
@@ -168,9 +168,16 @@ formula_length = tf.placeholder(tf.int32, shape=(None, ), name='formula_length')
 ```
 
 
-> A special note on the type of the image input. You may have noticed that we use `tf.uint8`. This is because our image is encoded in grey-levels (integers from `0` to `255` - and $ 2^8 = 256 $). Even if we could give a `tf.float32` Tensor as input to Tensorflow, this would be 4 times more expensive in terms of memory bandwith. It turns out that data starvation is one of the main bottlenecks of GPUs, thus this simple trick can save us some computation time.
+> A special note on the type of the image input. You may have noticed that we use `tf.uint8`. This is because our image is encoded in grey-levels (integers from `0` to `255` - and $ 2^8 = 256 $). Even if we could give a `tf.float32` Tensor as input to Tensorflow, this would be 4 times more expensive in terms of memory bandwith. As data starvation is one of the main bottlenecks of GPUs, this simple trick can save us some computation time. For further improvement of the data pipeline, have a look at [the new Tensorflow data pipeline](https://www.tensorflow.org/versions/r1.4/api_docs/python/tf/data).
 
 ### Encoder
+
+Apply some convolutional network on top of the image an flatten the output into a sequence of vectors $ [e_1, \dots, e_n] $, each of those corresponding to a region of the input image. These vectors will correspond to the hidden vectors of the LSTM that we used for translation.
+
+> Once our image is transformed into a sequence, we can use the seq2seq model!
+
+{% include image.html url="/assets/img2latex/img2latex_encoder.svg" description="Convolutional Encoder - produces a sequence of vectors" size="100%" %}
+
 
 We need to extract features from our image, and for this, nothing has (yet) been proven more effective than convolutions. Here, there is nothing much to say except that we pick some architecture that has been proven to be effective for Optical Character Recognition (OCR), which stacks convolutional layers and max-pooling to produce a Tensor of shape $ [H', W', 512] $
 
@@ -248,7 +255,7 @@ __Attention Mechanism__ We first need to compute a score $ \alpha_{t'} $ for eac
 
 $$
 \begin{align*}
-\alpha_{t'} &= \beta^T \tanh\left( W_1 \cdot e_{t'} + W_2 \cdot h_{t-1}  \right)\\
+\alpha_{t'} &= \beta^T \tanh\left( W_1 \cdot e_{t'} + W_2 \cdot h_{t}  \right)\\
 \bar{\alpha} &= \operatorname{softmax}\left(\alpha\right)\\
 c_t &= \sum_{i=1}^n \bar{\alpha}_{t'} e_{t'}\\
 \end{align*}
@@ -275,15 +282,15 @@ a = tf.expand_dims(a, axis=-1)
 c = tf.reduce_sum(a * seq, axis=1)
 ```
 
-> Note that the line `W1_e = tf.layers.dense(inputs=seq, units=512, use_bias=False)` is common to every decoder time step, so we can just compute it once and for all. Note that the dense layer with no bias is just a matrix multiplication.
+> Note that the line `W1_e = tf.layers.dense(inputs=seq, units=512, use_bias=False)` is common to every decoder time step, so we can just compute it once and for all. The dense layer with no bias is just a matrix multiplication.
 
-Now that we have our attention vector, let's just add a small modification and compute an other vector $ o_t $ that we will use to make our final prediction and that we will feed as input to the LSTM for the next step. Here $ w_{t-1} $ denotes the embedding of the token generated at the previous step.
+Now that we have our attention vector, let's just add a small modification and compute an other vector $ o_{t-1} $ that we will use to make our final prediction and that we will feed as input to the LSTM for the next step. Here $ w_{t-1} $ denotes the embedding of the token generated at the previous step.
 
 $$
 \begin{align*}
-o_t &= \tanh\left(W_3 \cdot [h_{t-1}, c_t] \right)\\
-p_t &= \operatorname{softmax}\left(W_4 \cdot o_t \right)\\
-h_t &= \operatorname{LSTM}\left( h_{t-1}, [w_{t-1}, o_{t-1}] \right)
+h_t &= \operatorname{LSTM}\left( h_{t-1}, [w_{t-1}, o_{t-1}] \right)\\
+o_{t} &= \tanh\left(W_3 \cdot [h_{t}, c_t] \right)\\
+p_t &= \operatorname{softmax}\left(W_4 \cdot o_{t} \right)\\
 \end{align*}
 $$
 
@@ -303,11 +310,11 @@ logits = tf.layers.dense(inputs=o, units=vocab_size, use_bias=False)
 
 This is a good point, and we just use the same technique that we used to generate $ h_0 $ but with different weights!
 
-## Some Tensorflow tricks
+### Tensorflow details
 
 > Well, now that we've covered the essential steps, how to I make it work with the high level functions of Tensorflow like `dynamic_rnn` etc. ?
 
-We'll need to encapsulate the reccurent logic into a custom cell that inherit `RNNCell`. Our custom cell will be able to call the LSTM cell (initialized in the `__init__`). It also has a special recurrent state that combines the LSTM state and the vector $ o $ (as we need to pass this through). An elegant way is to define a namedtuple for this recurrent state:
+We'll need to encapsulate the reccurent logic into a custom cell that inherits `RNNCell`. Our custom cell will be able to call the LSTM cell (initialized in the `__init__`). It also has a special recurrent state that combines the LSTM state and the vector $ o $ (as we need to pass it through). An elegant way is to define a namedtuple for this recurrent state:
 
 ```python
 AttentionState = collections.namedtuple("AttentionState", ("lstm_state", "o"))
@@ -319,24 +326,17 @@ class AttentionCell(RNNCell):
     def __call__(self, inputs, cell_state):
         """
         Args:
-            inputs: shape = (batch_size, dim_embeddings) embeddings from
-                previous time step
+            inputs: shape = (batch_size, dim_embeddings) embeddings from previous time step
             cell_state: (AttentionState) state from previous time step
-
         """
         lstm_state, o = cell_state
-
         # compute h
         h, new_lstm_state = self.lstm_cell(tf.concat([inputs, o], axis=-1), lstm_state)
-
-        #######################################################################
-        ############ compute new o and logits as explained above ##############
-        # new_o  = ...                                                        #
-        # logits = ...                                                        #
-        #######################################################################
+        # apply previous logic
+        new_o  = ...
+        logits = ...
 
         new_state = AttentionState(new_lstm_state, new_o)
-
         return logits, new_state
 ```
 
@@ -358,17 +358,63 @@ tok_embeddings = tf.concat([start_tokens, tok_embeddings[:, :-1, :]], axis=1)
 
 # 3. decode
 attn_cell = AttentionCell()
-output_seq, _ = tf.nn.dynamic_rnn(attn_cell, tok_embeddings, initial_state=AttentionState(h_0, o_0))
+seq_logits, _ = tf.nn.dynamic_rnn(attn_cell, tok_embeddings, initial_state=AttentionState(h_0, o_0))
 ```
 
 
-> Are'nt you trying to fool us? If I understand the code written above, you are using your formula to predict it! In other words, you're not generating any sentence, but merely copying!
+> Are'nt you trying to fool us? If I understand the code written above, you are feeding the `formula` into the decoder's LSTM! In other words, you're not generating any sentence, but merely copying!
 
-That's partly right! The previous code does indeed feed into the decoder's LSTM the actual tokens of the target sequence. It will speedup the training, as errors won't accumulate. If the decoder is wrong about the first token, which is the most likely case at the beginning of the training, then, if we feed this token to the next step, the second token will have even less chance to be correct!. That's why we replace the prediction by the actual true token at training time.
+That's partly right! The previous code does indeed feed into the decoder's LSTM the actual tokens of the target sequence, and thus is trained to predict the next word at each position. It will speedup the training, as errors won't accumulate. If the decoder is wrong about the first token, which is the most likely case at the beginning of the training, then, if we feed this token to the next step, the second token will have even smaller chances to be correct!. That's why we replace the prediction we feed into the LSTM by the actual true token at training time.
 
-## Training and Testing
 
-TODO explain problem train/test and what the loss is + Tensorflow code for loss and train
+> We'll need to create 2 different outputs in the Tensorflow graph: one for training (that uses the `formula`) and one for test time (that ignores everything about the actual `formula`).
+
+
+### Training
+
+During training, as explained above, we feed the actual output sequence (`<sos>` `comment` `vas` `tu`) into the decoder's LSTM and it tries to predict the next token at every position (`comment` `vas` `tu` `<eos>`).
+
+{% include image.html url="/assets/img2latex/img2latex_training.svg" description="Training" size="80%" %}
+
+
+ The `__call__` function of our `AttentionCell` outputs `logits`, a vector of scores $ \in \mathbb{R}^V $ for each time step. After applying a softmax to each of these logit vectors, we get vectors of probability over the vocabulary $ p_i \in \mathbb{R}^V  $ for each time step. Then, for a given target sequence $ y_1, \dots, y_n $, we can compute its probability as the product of the probabilities of each token being produced at each relevant time step:
+
+$$
+\mathbb{P}\left(y_1, \dots, y_m \right) = \prod_{i=1}^m p_i [y_i]
+$$
+
+where $  p_i [y_i] $ means that we extract the $ y_i $-th entry of the probability vector $ p_i $ from the $i$-th decoding step. In particular, we can compute the probability of the actual target sequence. A perfect system would give a probabilty of 1 to this target sequence, so we are going to train our network to maximize the probability of the target sequence, which is the same as minimizing
+
+$$
+\begin{align*}
+- \log \mathbb{P}\left(y_1, \dots, y_m \right) &= - \log \prod_{i=1}^m p_i [y_i]\\
+&= - \sum_{i=1}^n \log p_i [y_i]
+\end{align*}
+$$
+
+
+and you recognize the standard cross entropy: we actually are minimizing the cross entropy between the target distribution (all one-hot vectors) and the predicted distribution outputed by our model (our vectors $ p_i $). Now, thanks to high-level functions of Tensorflow, the implementation is pretty straightforward, we only need to be careful about the masking (for formulas that have different length in the batch).
+
+
+
+```python
+# compute - log(p_i[y_i]) for each time step, shape = (batch_size, formula length)
+losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=seq_logits, labels=formula)
+# masking the losses
+mask = tf.sequence_mask(formula_length)
+losses = tf.boolean_mask(losses, mask)
+# averaging the loss over the batch
+loss = tf.reduce_mean(losses)
+# building the train op
+optimizer = tf.train.AdamOptimizer(learning_rate)
+train_op = optimizer.minimize(loss)
+```
+
+and when iterating over the batches during training, we'll give the `train_op` to the `tf.Session` along with a `feed_dict` containing the data for the placeholders.
+
+### Testing
+
+Now, for test time, we need to use the prediction from the first time step to make the prediction for the second time step, etc. Imagine that
 
 ### Beam Search
 
