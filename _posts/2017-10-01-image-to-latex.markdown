@@ -1,8 +1,8 @@
 ---
 layout: post
 title:  "Image to LaTeX"
-description: "Image to Sequence model with Tensorflow with attention and positional embeddings"
-excerpt: "Image to Sequence model with Tensorflow for LaTeX generation"
+description: "Sequence to Sequence model with Tensorflow with attention and positional embeddings for image to LaTeX"
+excerpt: "Sequence to Sequence model with Tensorflow for LaTeX generation"
 date:   2017-10-01
 mathjax: true
 comments: true
@@ -10,7 +10,7 @@ published: false
 ---
 
 
-Code is available on [github](https://github.com/guillaumegenthial/img2seq).
+Code is available on [github](https://github.com/guillaumegenthial/img2latex).
 
 ## Introduction
 
@@ -23,14 +23,14 @@ This thought has been obsessing me for a long time (and I'm sure I'm not the onl
 {% include image.html url="/assets/img2latex/img2latex_task.svg" description="Producing LaTeX code from an image" size="100%" %}
 
 __The Sequence to Sequence framework__
-In my [last post](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html) about named entity recognition, I explained how to predict a tag for a word, which can be considered as a relatively simple task. However, some tasks like translation require more complicated systems. You may have heard from some recent breakthroughs in Neural Machine Translation that led to (almost) human-level performance systems (used in real-life by Google Translation, see for instance this exciting [work](https://arxiv.org/abs/1611.04558) enabling zero-shot translation). These new architectures all rely on a common paradigm called [__sequence to sequence__](https://arxiv.org/abs/1406.1078) (or __Seq2Seq__), whose goal is to produce an entire sequence of tokens. Compared to former techniques that relied on a translation model (capturing meaning of the input sequence) and a language model (modelling the distribution of words in the output sequence), this framework is more flexible, as it can generate an arbitrary-length sequence after having read the input sequence, while leveraging the flexibility of Deep Learning models (end-to-end training with scalability to any type of input).
+In my [last post](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html) about named entity recognition, I explained how to predict a tag for a word, which can be considered as a relatively simple task. However, some tasks like translation require more complicated systems. You may have heard from some recent breakthroughs in Neural Machine Translation that led to (almost) human-level performance systems (used in real-life by Google Translation, see for instance this exciting [work](https://arxiv.org/abs/1611.04558) enabling zero-shot translation). These new architectures rely on a common paradigm called [__sequence to sequence__](https://arxiv.org/abs/1406.1078) (or __Seq2Seq__), whose goal is to produce an entire sequence of tokens. Compared to former techniques that relied on a translation model (capturing meaning of the input sequence) and a language model (modelling the distribution of words in the output sequence), this framework is more flexible, as it can generate an arbitrary-length sequence after having read the input sequence, while leveraging the flexibility of Deep Learning models (end-to-end training with scalability to any type of input).
 
 > This problem is about producing a sequence of tokens from an image, and is thus at the intersection of Computer Vision and Natural Language Processing.
 
 __Approach__
 A similar idea can be applied to our LaTeX generation problem. The input sequence would just be replaced by an image, preprocessed with some convolutional model adapted to OCR (in a sense, if we *unfold* the pixels of an image into a sequence, this is exactly the same problem). This idea proved to be efficient for image captioning (see the reference paper [Show, Attend and Tell](https://arxiv.org/abs/1502.03044)). Building on some [great work](https://arxiv.org/pdf/1609.04938v1.pdf) from the Harvard NLP group, my teammate and I chose to follow a similar approach.
 
-Good Tensorflow implementations of such models were hard to find. Together with this post, I am releasing the [code](https://github.com/guillaumegenthial/img2latex) and hope some will find it useful. You can use it to train your own image captioning model or adapt it for a more advanced use. [The code](https://github.com/guillaumegenthial/img2latex) does __not__ rely on the [Tensorflow Seq2Seq library](https://www.tensorflow.org/versions/master/api_guides/python/contrib.seq2seq) as it was not entirely ready at the time of the project and I also wanted more flexibility. In this post, we'll assume basic knowledge on Deep Learning (Convolutions, LSTMs, etc.). For readers new to Computer Vision and Natural Language Processing, have a look at the wonderful Stanford classes [cs231n](http://cs231n.stanford.edu) and [cs224n](http://web.stanford.edu/class/cs224n/).
+Good Tensorflow implementations of such models were hard to find. Together with this post, I am releasing the [code](https://github.com/guillaumegenthial/img2latex) and hope some will find it useful. You can use it to train your own image captioning model or adapt it for a more advanced use. [The code](https://github.com/guillaumegenthial/img2latex) does __not__ rely on the [Tensorflow Seq2Seq library](https://www.tensorflow.org/versions/master/api_guides/python/contrib.seq2seq) as it was not entirely ready at the time of the project and I also wanted more flexibility (but adopts a similar interface). In this post, we'll assume basic knowledge about Deep Learning (Convolutions, LSTMs, etc.). For readers new to Computer Vision and Natural Language Processing, have a look at the famous Stanford classes [cs231n](http://cs231n.stanford.edu) and [cs224n](http://web.stanford.edu/class/cs224n/).
 
 
 
@@ -51,11 +51,12 @@ Our input sequence is `how are you`. Each word from the input sequence is associ
 
 __Decoder__
 
-Now that we have a vector $ e $ that encapsulates the meaning of the input sequence, we'll use it to generate the target sequence word by word. Feed to another LSTM cell: $ e $ as hidden state and a special *start of sentence* vector $ w_{sos} $ as input. The output of the LSTM will be a vector of size = size of the vocabulary $ s_0 \in \mathbb{R}^{V} $. Let's denote the new hidden state by $ h_0 $.
+Now that we have a vector $ e $ that encapsulates the meaning of the input sequence, we'll use it to generate the target sequence word by word. Feed to another LSTM cell: $ e $ as hidden state and a special *start of sentence* vector $ w_{sos} $ as input. The LSTM computes the next hidden state $ h_0 \in \mathbb{R}^h $. Then, we apply some function $ g : \mathbb{R}^h \mapsto \mathbb{R}^V $ so that $ s_0 := g(h_0) \in \mathbb{R}^V $ is a vector of the same size as the vocabulary.
 
 $$
 \begin{align*}
-h_0, s_0 &= \operatorname{LSTM}\left(e, w_{sos} \right)\\
+h_0 &= \operatorname{LSTM}\left(e, w_{sos} \right)\\
+s_0 &= g(h_0)\\
 p_0 &= \operatorname{softmax}(s_0)\\
 i_0 &= \operatorname{argmax}(p_0)\\
 \end{align*}
@@ -65,7 +66,8 @@ Then, apply a softmax to $ s_0 $ to normalize it into a vector of probabilities 
 
 $$
 \begin{align*}
-h_1, s_1 &= \operatorname{LSTM}\left(h_0, w_{i_0} \right)\\
+h_1 &= \operatorname{LSTM}\left(h_0, w_{i_0} \right)\\
+s_1 &= g(h_1)\\
 p_1 &= \operatorname{softmax}(s_1)\\
 i_1 &= \operatorname{argmax}(p_1)
 \end{align*}$$
@@ -74,6 +76,7 @@ The decoding stops when the predicted word is a special *end of sentence* token.
 
 {% include image.html url="/assets/img2latex/seq2seq_vanilla_decoder.svg" description="Vanilla Decoder" size="100%" %}
 
+> Intuitively, the hidden vector represents the "amount of meaning" that has not been decoded yet.
 
 ### Seq2Seq with Attention
 
@@ -82,7 +85,8 @@ The previous model has been refined over the past few years and greatly benefite
 
 $$
 \begin{align*}
-h_{t}, s_t &= \operatorname{LSTM}\left(h_{t-1}, [w_{i_{t-1}}, c_t] \right)\\
+h_{t} &= \operatorname{LSTM}\left(h_{t-1}, [w_{i_{t-1}}, c_t] \right)\\
+s_t &= g(h_t)\\
 p_t &= \operatorname{softmax}(s_t)\\
 i_t &= \operatorname{argmax}(p_t)
 \end{align*}$$
@@ -111,7 +115,7 @@ w^T [h_{t-1}, e_{t'}]\\
 \end{cases}
 $$
 
-It turns out that the attention weighs $ \bar{\alpha} $ can be easily interpreted. When generating the word `vas` (corresponding to `are` in English), we expect the $ \bar{\alpha} $ of `are` to be close to $ 1 $ while the ones for `how` and `you` to be close to $ 0 $. Intuitively, the context vector $ c $ will be roughly equal to the hidden vector of `are` and it will help to generate the French word `vas`.
+It turns out that the attention weighs $ \bar{\alpha} $ can be easily interpreted. When generating the word `vas` (corresponding to `are` in English), we expect $ \bar{\alpha} _ {\text{are}} $ to be close to $ 1 $ while $ \bar{\alpha} _ {\text{how}} $ and $ \bar{\alpha} _ {\text{you}} $ to be close to $ 0 $. Intuitively, the context vector $ c $ will be roughly equal to the hidden vector of `are` and it will help to generate the French word `vas`.
 
 By putting the attention weights into a matrix (rows = input sequence, columns = output sequence), we would have access to the __alignment__ between the words from the English and French sentences... There are still a lot of things to say about sequence to sequence models (for instance, it works better if the encoder processes the input sequence *backwards*...) but we know enough to get started on our LaTeX generation problem.
 
@@ -120,7 +124,7 @@ By putting the attention weights into a matrix (rows = input sequence, columns =
 
 To train our model, we'll need labeled examples: images of formulas along with the LaTeX code used to generate the images. A good source of LaTeX code is [arXiv](https://arxiv.org), that has thousands of articles under the `.tex` format. After applying some heuristics to find equations in the `.tex` files, keeping only the ones that actually compile, the [Harvard NLP group](https://zenodo.org/record/56198#.WflVu0yZPLZ) extracted $ \sim 100, 000 $ formulas.
 
-> Wait... Don't you have a problem as different LaTeX codes can give the same equation?
+> Wait... Don't you have a problem as different LaTeX codes can give the same image?
 
 Good point: `(x^2 + 1)` and `\left( x^{2} + 1 \right)` indeed give the same output. That's why Harvard's paper found out that normalizing the data using a parser ([KaTeX](https://khan.github.io/KaTeX/)) improved performance. It forces adoption of some conventions, like writing `x ^ { 2 }` instead of `x^2`, etc. After normalization, they end up with a `.txt` file containing one formula per line that looks like
 
@@ -168,18 +172,18 @@ formula_length = tf.placeholder(tf.int32, shape=(None, ), name='formula_length')
 ```
 
 
-> A special note on the type of the image input. You may have noticed that we use `tf.uint8`. This is because our image is encoded in grey-levels (integers from `0` to `255` - and $ 2^8 = 256 $). Even if we could give a `tf.float32` Tensor as input to Tensorflow, this would be 4 times more expensive in terms of memory bandwith. As data starvation is one of the main bottlenecks of GPUs, this simple trick can save us some computation time. For further improvement of the data pipeline, have a look at [the new Tensorflow data pipeline](https://www.tensorflow.org/versions/r1.4/api_docs/python/tf/data).
+> A special note on the type of the image input. You may have noticed that we use `tf.uint8`. This is because our image is encoded in grey-levels (integers from `0` to `255` - and $ 2^8 = 256 $). Even if we could give a `tf.float32` Tensor as input to Tensorflow, this would be 4 times more expensive in terms of memory bandwith. As data starvation is one of the main bottlenecks of GPUs, this simple trick can save us some training time. For further improvement of the data pipeline, have a look at [the new Tensorflow data pipeline](https://www.tensorflow.org/versions/r1.4/api_docs/python/tf/data).
 
 ### Encoder
 
-Apply some convolutional network on top of the image an flatten the output into a sequence of vectors $ [e_1, \dots, e_n] $, each of those corresponding to a region of the input image. These vectors will correspond to the hidden vectors of the LSTM that we used for translation.
+__High-level idea__ Apply some convolutional network on top of the image an flatten the output into a sequence of vectors $ [e_1, \dots, e_n] $, each of those corresponding to a region of the input image. These vectors will correspond to the hidden vectors of the LSTM that we used for translation.
 
 > Once our image is transformed into a sequence, we can use the seq2seq model!
 
 {% include image.html url="/assets/img2latex/img2latex_encoder.svg" description="Convolutional Encoder - produces a sequence of vectors" size="100%" %}
 
 
-We need to extract features from our image, and for this, nothing has (yet) been proven more effective than convolutions. Here, there is nothing much to say except that we pick some architecture that has been proven to be effective for Optical Character Recognition (OCR), which stacks convolutional layers and max-pooling to produce a Tensor of shape $ [H', W', 512] $
+We need to extract features from our image, and for this, nothing has ([yet](https://arxiv.org/abs/1710.09829)) been proven more effective than convolutions. Here, there is nothing much to say except that we pick some architecture that has been proven to be effective for Optical Character Recognition (OCR), which stacks convolutional layers and max-pooling to produce a Tensor of shape $ [H', W', 512] $
 
 
 ```python
@@ -231,6 +235,8 @@ where $ f $ is some frequency parameter. Intuitively, because $ \sin(a+b) $ and 
 out = add_timing_signal_nd(out)
 ```
 
+<!-- > Harvard's technique is slightly different, as they process the feature vectors with a recurrent neural network, that adds positional information (among other things). -->
+
 ### Decoder
 
 Now that we have a sequence of vectors $ [e_1, \dots, e_n] $ that represents our input image, let's decode it! First, let's explain what variant of the Seq2Seq framework we are going to use.
@@ -251,7 +257,7 @@ h = tf.tanh(tf.matmul(img_mean, W) + b)
 ```
 
 
-__Attention Mechanism__ We first need to compute a score $ \alpha_{t'} $ for each vector $ e_{t'} $ of the sequence. Let's use this function that proved to be efficient according to numerous papers
+__Attention Mechanism__ We first need to compute a score $ \alpha_{t'} $ for each vector $ e_{t'} $ of the sequence. We use the following method
 
 $$
 \begin{align*}
@@ -289,6 +295,7 @@ Now that we have our attention vector, let's just add a small modification and c
 $$
 \begin{align*}
 h_t &= \operatorname{LSTM}\left( h_{t-1}, [w_{t-1}, o_{t-1}] \right)\\
+c_t &= \operatorname{Attention}([e_1, \dots, e_n], h_t)\\
 o_{t} &= \tanh\left(W_3 \cdot [h_{t}, c_t] \right)\\
 p_t &= \operatorname{softmax}\left(W_4 \cdot o_{t} \right)\\
 \end{align*}
@@ -333,6 +340,7 @@ class AttentionCell(RNNCell):
         # compute h
         h, new_lstm_state = self.lstm_cell(tf.concat([inputs, o], axis=-1), lstm_state)
         # apply previous logic
+        c = ...
         new_o  = ...
         logits = ...
 
@@ -367,7 +375,7 @@ seq_logits, _ = tf.nn.dynamic_rnn(attn_cell, tok_embeddings, initial_state=Atten
 That's partly right! The previous code does indeed feed into the decoder's LSTM the actual tokens of the target sequence, and thus is trained to predict the next word at each position. It will speedup the training, as errors won't accumulate. If the decoder is wrong about the first token, which is the most likely case at the beginning of the training, then, if we feed this token to the next step, the second token will have even smaller chances to be correct!. That's why we replace the prediction we feed into the LSTM by the actual true token at training time.
 
 
-> We'll need to create 2 different outputs in the Tensorflow graph: one for training (that uses the `formula`) and one for test time (that ignores everything about the actual `formula`).
+> We'll need to create 2 different outputs in the Tensorflow graph: one for training (that uses the `formula`) and one for test time (that ignores everything about the actual `formula` and uses the prediction from the previous step).
 
 
 ### Training
@@ -387,7 +395,7 @@ where $  p_i [y_i] $ means that we extract the $ y_i $-th entry of the probabili
 
 $$
 \begin{align*}
-- \log \mathbb{P}\left(y_1, \dots, y_m \right) &= - \log \prod_{i=1}^m p_i [y_i]\\
+-\log \mathbb{P} \left(y_1, \dots, y_m \right) &= - \log \prod_{i=1}^m p_i [y_i]\\
 &= - \sum_{i=1}^n \log p_i [y_i]
 \end{align*}
 $$
