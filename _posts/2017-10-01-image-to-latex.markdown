@@ -3,15 +3,15 @@ layout: post
 title:  "Seq2seq for LaTeX generation"
 description: "Sequence to Sequence model (seq2seq) in Tensorflow + attention + positional embeddings + beam search - Im2LaTeX challenge - similar to Show Attend and Tell"
 excerpt: "Sequence to Sequence model with Tensorflow for LaTeX generation"
-date:   2017-10-01
+date:   2017-11-08
 mathjax: true
 comments: true
-published: false
+published: true
 ---
 
 
-Code is available on [github](https://github.com/guillaumegenthial/img2latex).
-Though designed for *image to LaTeX*, it could be used for standard seq2seq with very little effort.
+Code is available on [github](https://github.com/guillaumegenthial/im2latex).
+Though designed for *image to LaTeX* ([im2latex](https://openai.com/requests-for-research/#im2latex) challenge), it could be used for standard seq2seq with very little effort.
 
 ## Introduction
 
@@ -31,7 +31,7 @@ In my [last post](https://guillaumegenthial.github.io/sequence-tagging-with-tens
 __Approach__
 A similar idea can be applied to our LaTeX generation problem. The input sequence would just be replaced by an image, preprocessed with some convolutional model adapted to OCR (in a sense, if we *unfold* the pixels of an image into a sequence, this is exactly the same problem). This idea proved to be efficient for image captioning (see the reference paper [Show, Attend and Tell](https://arxiv.org/abs/1502.03044)). Building on some [great work](https://arxiv.org/pdf/1609.04938v1.pdf) from the Harvard NLP group, my teammate and I chose to follow a similar approach.
 
-Good Tensorflow implementations of such models were hard to find. Together with this post, I am releasing the [code](https://github.com/guillaumegenthial/img2latex) and hope some will find it useful. You can use it to train your own image captioning model or adapt it for a more advanced use. [The code](https://github.com/guillaumegenthial/img2latex) does __not__ rely on the [Tensorflow Seq2Seq library](https://www.tensorflow.org/versions/master/api_guides/python/contrib.seq2seq) as it was not entirely ready at the time of the project and I also wanted more flexibility (but adopts a similar interface). In this post, we'll assume basic knowledge about Deep Learning (Convolutions, LSTMs, etc.). For readers new to Computer Vision and Natural Language Processing, have a look at the famous Stanford classes [cs231n](http://cs231n.stanford.edu) and [cs224n](http://web.stanford.edu/class/cs224n/).
+Good Tensorflow implementations of such models were hard to find. Together with this post, I am releasing the [code](https://github.com/guillaumegenthial/im2latex) and hope some will find it useful. You can use it to train your own image captioning model or adapt it for a more advanced use. [The code](https://github.com/guillaumegenthial/im2latex) does __not__ rely on the [Tensorflow Seq2Seq library](https://www.tensorflow.org/versions/master/api_guides/python/contrib.seq2seq) as it was not entirely ready at the time of the project and I also wanted more flexibility (but adopts a similar interface). In this post, we'll assume basic knowledge about Deep Learning (Convolutions, LSTMs, etc.). For readers new to Computer Vision and Natural Language Processing, have a look at the famous Stanford classes [cs231n](http://cs231n.stanford.edu) and [cs224n](http://web.stanford.edu/class/cs224n/).
 
 
 
@@ -522,9 +522,10 @@ def dynamic_decode(decoder_cell, maximum_iterations):
 
     # return the final outputs (details on github)
 ```
-> Some details using `TensorArrays` or `nest.map_structure` have been omitted for clarity but may be found on [github](https://github.com/guillaumegenthial/img2latex/blob/master/model/components/dynamic_decode.py)
+> Some details using `TensorArrays` or `nest.map_structure` have been omitted for clarity but may be found on [github](https://github.com/guillaumegenthial/im2latex/blob/master/model/components/dynamic_decode.py)
 
-TODO do we need the variable_scope?
+> Notice that we place the `tf.while_loop` inside a scope named `rnn`. This is because `dynamic_rnn` does the same thing and thus the weights of our LSTM are defined in that scope.
+
 
 
 ### Beam Search
@@ -591,7 +592,7 @@ class BeamSearchDecoderCell(object):
         # compute new embeddings, new_finished, new_cell state...
         new_embedding = tf.nn.embedding_lookup(self._embeddings, new_ids)
 ```
-> Look at [github](https://github.com/guillaumegenthial/img2latex/blob/master/model/components/beam_search_decoder_cell.py) for the details. The main idea is that we add a beam dimension to every tensor, but when feeding it into `AttentionCell` we merge the beam dimension with the batch dimension. There is also some trickery involved to compute the parents and the new ids using modulos.
+> Look at [github](https://github.com/guillaumegenthial/im2latex/blob/master/model/components/beam_search_decoder_cell.py) for the details. The main idea is that we add a beam dimension to every tensor, but when feeding it into `AttentionCell` we merge the beam dimension with the batch dimension. There is also some trickery involved to compute the parents and the new ids using modulos.
 
 ## Conclusion
 
