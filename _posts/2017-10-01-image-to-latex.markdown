@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Image to LaTeX"
-description: "Sequence to Sequence model with Tensorflow with attention and positional embeddings for image to LaTeX"
+title:  "Seq2seq for LaTeX generation"
+description: "Sequence to Sequence model (seq2seq) in Tensorflow + attention + positional embeddings + beam search - Im2LaTeX challenge - similar to Show Attend and Tell"
 excerpt: "Sequence to Sequence model with Tensorflow for LaTeX generation"
 date:   2017-10-01
 mathjax: true
@@ -11,6 +11,7 @@ published: false
 
 
 Code is available on [github](https://github.com/guillaumegenthial/img2latex).
+Though designed for *image to LaTeX*, it could be used for standard seq2seq with very little effort.
 
 ## Introduction
 
@@ -51,7 +52,7 @@ Our input sequence is `how are you`. Each word from the input sequence is associ
 
 __Decoder__
 
-Now that we have a vector $ e $ that encapsulates the meaning of the input sequence, we'll use it to generate the target sequence word by word. Feed to another LSTM cell: $ e $ as hidden state and a special *start of sentence* vector $ w_{sos} $ as input. The LSTM computes the next hidden state $ h_0 \in \mathbb{R}^h $. Then, we apply some function $ g : \mathbb{R}^h \mapsto \mathbb{R}^V $ so that $ s_0 := g(h_0) \in \mathbb{R}^V $ is a vector of the same size as the vocabulary.
+Now that we have a vector $ e $ that captures the meaning of the input sequence, we'll use it to generate the target sequence word by word. Feed to another LSTM cell: $ e $ as hidden state and a special *start of sentence* vector $ w_{sos} $ as input. The LSTM computes the next hidden state $ h_0 \in \mathbb{R}^h $. Then, we apply some function $ g : \mathbb{R}^h \mapsto \mathbb{R}^V $ so that $ s_0 := g(h_0) \in \mathbb{R}^V $ is a vector of the same size as the vocabulary.
 
 $$
 \begin{align*}
@@ -74,7 +75,7 @@ i_1 &= \operatorname{argmax}(p_1)
 
 The decoding stops when the predicted word is a special *end of sentence* token.
 
-{% include image.html url="/assets/img2latex/seq2seq_vanilla_decoder.svg" description="Vanilla Decoder" size="100%" %}
+{% include image.html url="/assets/img2latex/seq2seq_vanilla_decoder.svg" description="Vanilla Decoder" size="90%" %}
 
 > Intuitively, the hidden vector represents the "amount of meaning" that has not been decoded yet.
 
@@ -91,7 +92,7 @@ p_t &= \operatorname{softmax}(s_t)\\
 i_t &= \operatorname{argmax}(p_t)
 \end{align*}$$
 
-The vector $ c_t $ is the attention (or __context__) vector. We compute a new context vector at each decoding step. First, with a function $ f (h_{t-1}, e_{t'}) \mapsto \alpha_{t'} \in \mathbb{R} $, we compute a score for each hidden state $ e_{t'} $ of the encoder. We then normalize the sequence of $ \alpha_{t'} $ using a softmax and compute $ c_t $ as the weighted average of the $ e_{t'} $. In other words, we perform the following operations
+The vector $ c_t $ is the attention (or __context__) vector. We compute a new context vector at each decoding step. First, with a function $ f (h_{t-1}, e_{t'}) \mapsto \alpha_{t'} \in \mathbb{R} $, compute a score for each hidden state $ e_{t'} $ of the encoder. Then, normalize the sequence of $ \alpha_{t'} $ using a softmax and compute $ c_t $ as the weighted average of the $ e_{t'} $.
 
 $$
 \begin{align*}
@@ -117,7 +118,7 @@ $$
 
 It turns out that the attention weighs $ \bar{\alpha} $ can be easily interpreted. When generating the word `vas` (corresponding to `are` in English), we expect $ \bar{\alpha} _ {\text{are}} $ to be close to $ 1 $ while $ \bar{\alpha} _ {\text{how}} $ and $ \bar{\alpha} _ {\text{you}} $ to be close to $ 0 $. Intuitively, the context vector $ c $ will be roughly equal to the hidden vector of `are` and it will help to generate the French word `vas`.
 
-By putting the attention weights into a matrix (rows = input sequence, columns = output sequence), we would have access to the __alignment__ between the words from the English and French sentences... There are still a lot of things to say about sequence to sequence models (for instance, it works better if the encoder processes the input sequence *backwards*...) but we know enough to get started on our LaTeX generation problem.
+By putting the attention weights into a matrix (rows = input sequence, columns = output sequence), we would have access to the __alignment__ between the words from the English and French sentences... There is still a lot of things to say about sequence to sequence models (for instance, it works better if the encoder processes the input sequence *backwards*...) but we know enough to get started on our LaTeX generation problem.
 
 
 ## Data
@@ -290,7 +291,9 @@ c = tf.reduce_sum(a * seq, axis=1)
 
 > Note that the line `W1_e = tf.layers.dense(inputs=seq, units=512, use_bias=False)` is common to every decoder time step, so we can just compute it once and for all. The dense layer with no bias is just a matrix multiplication.
 
-Now that we have our attention vector, let's just add a small modification and compute an other vector $ o_{t-1} $ that we will use to make our final prediction and that we will feed as input to the LSTM for the next step. Here $ w_{t-1} $ denotes the embedding of the token generated at the previous step.
+Now that we have our attention vector, let's just add a small modification and compute an other vector $ o_{t-1} $ (as in [Luong, Pham and Manning](https://arxiv.org/pdf/1508.04025.pdf)) that we will use to make our final prediction and that we will feed as input to the LSTM at the next step. Here $ w_{t-1} $ denotes the embedding of the token generated at the previous step.
+
+>  $$ o_t $$ passes some information about the distribution from the previous time step as well as the confidence it had for the predicted token
 
 $$
 \begin{align*}
@@ -310,14 +313,15 @@ o = tf.tanh(W3_o)
 
 # compute the logits scores (before softmax)
 logits = tf.layers.dense(inputs=o, units=vocab_size, use_bias=False)
+# the softmax will be computed in the loss or somewhere else
 ```
 
 
 > If I read carefully, I notice that for the first step of the decoding process, we need to compute an $ o_0 $ too, right?
 
-This is a good point, and we just use the same technique that we used to generate $ h_0 $ but with different weights!
+This is a good point, and we just use the same technique that we used to generate $ h_0 $ but with different weights.
 
-### Tensorflow details
+## Tensorflow details
 
 > Well, now that we've covered the essential steps, how to I make it work with the high level functions of Tensorflow like `dynamic_rnn` etc. ?
 
@@ -356,12 +360,12 @@ Then, to compute our output sequence, we just need to call the previous cell on 
 E = tf.get_variable("E", shape=[vocab_size, 80], dtype=tf.float32)
 # special <sos> token
 start_token = tf.get_variable("start_token", dtype=tf.float32, shape=[80])
+tok_embeddings = tf.nn.embedding_lookup(E, formula)
 
 # 2. add the special <sos> token embedding at the beggining of every formula
-tok_embeddings = tf.nn.embedding_lookup(E, formula)
 start_token_ = tf.reshape(start_token, [1, 1, dim])
 start_tokens = tf.tile(start_token_, multiples=[batch_size, 1, 1])
-# remove the last word that won't be used because we reached the end
+# remove the <eos> that won't be used because we reached the end
 tok_embeddings = tf.concat([start_tokens, tok_embeddings[:, :-1, :]], axis=1)
 
 # 3. decode
@@ -370,7 +374,7 @@ seq_logits, _ = tf.nn.dynamic_rnn(attn_cell, tok_embeddings, initial_state=Atten
 ```
 
 
-> Are'nt you trying to fool us? If I understand the code written above, you are feeding the `formula` into the decoder's LSTM! In other words, you're not generating any sentence, but merely copying!
+> If I understand the code written above, you are feeding the `formula` into the decoder's LSTM! In other words, you're not generating any sentence, but merely copying!
 
 That's partly right! The previous code does indeed feed into the decoder's LSTM the actual tokens of the target sequence, and thus is trained to predict the next word at each position. It will speedup the training, as errors won't accumulate. If the decoder is wrong about the first token, which is the most likely case at the beginning of the training, then, if we feed this token to the next step, the second token will have even smaller chances to be correct!. That's why we replace the prediction we feed into the LSTM by the actual true token at training time.
 
@@ -378,9 +382,9 @@ That's partly right! The previous code does indeed feed into the decoder's LSTM 
 > We'll need to create 2 different outputs in the Tensorflow graph: one for training (that uses the `formula`) and one for test time (that ignores everything about the actual `formula` and uses the prediction from the previous step).
 
 
-### Training
+## Training
 
-During training, as explained above, we feed the actual output sequence (`<sos>` `comment` `vas` `tu`) into the decoder's LSTM and it tries to predict the next token at every position (`comment` `vas` `tu` `<eos>`).
+During training, we feed the actual output sequence (`<sos>` `comment` `vas` `tu`) into the decoder's LSTM and it tries to predict the next token at every position (`comment` `vas` `tu` `<eos>`).
 
 {% include image.html url="/assets/img2latex/img2latex_training.svg" description="Training" size="80%" %}
 
@@ -396,9 +400,13 @@ where $  p_i [y_i] $ means that we extract the $ y_i $-th entry of the probabili
 $$
 \begin{align*}
 -\log \mathbb{P} \left(y_1, \dots, y_m \right) &= - \log \prod_{i=1}^m p_i [y_i]\\
-&= - \sum_{i=1}^n \log p_i [y_i]
+&= - \sum_{i=1}^n \log p_i [y_i]\\
 \end{align*}
 $$
+
+in our example, this is equal to
+
+$$ - \log p_1[\text{comment}] - \log p_2[\text{vas}] - \log p_3[\text{tu}] - \log p_4[\text{<eos>}] $$
 
 
 and you recognize the standard cross entropy: we actually are minimizing the cross entropy between the target distribution (all one-hot vectors) and the predicted distribution outputed by our model (our vectors $ p_i $). Now, thanks to high-level functions of Tensorflow, the implementation is pretty straightforward, we only need to be careful about the masking (for formulas that have different length in the batch).
@@ -418,16 +426,183 @@ optimizer = tf.train.AdamOptimizer(learning_rate)
 train_op = optimizer.minimize(loss)
 ```
 
-and when iterating over the batches during training, we'll give the `train_op` to the `tf.Session` along with a `feed_dict` containing the data for the placeholders.
+and when iterating over the batches during training, `train_op` will be given to the `tf.Session` along with a `feed_dict` containing the data for the placeholders.
 
-### Testing
+## Testing and Decoding in Tensorflow
 
-Now, for test time, we need to use the prediction from the first time step to make the prediction for the second time step, etc. Imagine that
+The natural way of performing decoding is the one explained at the beginning of the article: choose the token that has the highest probability at each time step, before feeding it to the next time step. This method is called __greedy decoding__ and works pretty well, but suffers from the fact that it makes local choices. That's why we'll also cover another method that explores more options and can avoid local traps, the __beam search__.
+
+> Let's have a look at the Tensorflow implementation of the greedy method first
+
+### Greedy Decoder
+
+{% include image.html url="/assets/img2latex/seq2seq_vanilla_decoder.svg" description="Greedy Decoder - feeds the best token to the next step" size="70%" %}
+
+
+While greedy decoding is easy to conceptualize, implementing it in Tensorflow is not straightforward, as you need to use the previous prediction and can't use `dynamic_rnn` on the `formula`. There are basically __2 ways of approaching the problem__
+
+1. Modify our `AttentionCell` and `AttentionState` so that `AttentionState` also contains the embedding of the predicted word at the previous time step,
+```python
+    AttentionState = namedtuple("AttentionState", ("lstm_state", "o", "embedding"))
+
+    class AttentionCell(RNNCell):
+        def __call__(self, inputs, cell_state):
+            lstm_state, o, embbeding = cell_state
+            # compute h
+            h, new_lstm_state = self.lstm_cell(tf.concat([embedding, o], axis=-1), lstm_state)
+            # usual logic
+            logits = ...
+            # compute new embeddding
+            new_ids = tf.cast(tf.argmax(logits, axis=-1), tf.int32)
+            new_embedding = tf.nn.embedding_lookup(self._embeddings, new_ids)
+            new_state = AttentionState(new_lstm_state, new_o, new_embedding)
+
+            return logits, new_state
+```
+> This technique has a few downsides. It __doesn't use `inputs`__ (which used to be the embedding of the gold token from the `formula` and thus we would have to call `dynamic_rnn` on a "fake" sequence). Also, how do you know when to stop decoding, once you've reached the `<eos>` token?
+
+2. Implement a variant of `dynamic_rnn` that would not run on a sequence but feed the prediction from the previous time step to the cell, while having a maximum number of decoding steps. This would involve delving deeper into Tensorflow, using `tf.while_loop`. That's the method we're going to use as it fixes all the problems of the first technique. We eventually want something that looks like
+```python
+attn_cell = AttentionCell(...)
+# wrap the attention cell for decoding
+decoder_cell = GreedyDecoderCell(attn_cell)
+# call a special dynamic_decode primitive
+test_outputs, _ = dynamic_decode(decoder_cell, max_length_formula+1)
+```
+> Much better isn't it? Now let's see what `GreedyDecoderCell` and `dynamic_decode` look like.
+
+### Greedy Decoder Cell
+We first wrap the attention cell in a `GreedyDecoderCell` that takes care of the greedy logic for us, without having to modify the `AttentionCell`
+
+```python
+class DecoderOutput(collections.namedtuple("DecoderOutput", ("logits", "ids"))):
+    pass
+
+class GreedyDecoderCell(object):
+    def step(self, time, state, embedding, finished):
+        # next step of attention cell
+        logits, new_state = self._attention_cell.step(embedding, state)
+        # get ids of words predicted and get embedding
+        new_ids = tf.cast(tf.argmax(logits, axis=-1), tf.int32)
+        new_embedding = tf.nn.embedding_lookup(self._embeddings, new_ids)
+        # create new state of decoder
+        new_output = DecoderOutput(logits, new_ids)
+        new_finished = tf.logical_or(finished, tf.equal(new_ids,
+                self._end_token))
+
+        return (new_output, new_state, new_embedding, new_finished)
+
+```
+
+
+### Dynamic Decode primitive
+
+We need to implement a function `dynamic_decode` that will recursively call the above `step` function. We do this with a `tf.while_loop` that stops when all the hypotheses reached `<eos>` or `time` is greater than the max number of iterations.
+
+```python
+def dynamic_decode(decoder_cell, maximum_iterations):
+    # initialize variables (details on github)
+
+    def condition(time, unused_outputs_ta, unused_state, unused_inputs, finished):
+        return tf.logical_not(tf.reduce_all(finished))
+
+    def body(time, outputs_ta, state, inputs, finished):
+        new_output, new_state, new_inputs, new_finished = decoder_cell.step(
+            time, state, inputs, finished)
+        # store the outputs in TensorArrays (details on github)
+        new_finished = tf.logical_or(tf.greater_equal(time, maximum_iterations), new_finished)
+
+        return (time + 1, outputs_ta, new_state, new_inputs, new_finished)
+
+    with tf.variable_scope("rnn"):
+        res = tf.while_loop(
+            condition,
+            body,
+            loop_vars=[initial_time, initial_outputs_ta, initial_state, initial_inputs, initial_finished])
+
+    # return the final outputs (details on github)
+```
+> Some details using `TensorArrays` or `nest.map_structure` have been omitted for clarity but may be found on [github](https://github.com/guillaumegenthial/img2latex/blob/master/model/components/dynamic_decode.py)
+
+TODO do we need the variable_scope?
+
 
 ### Beam Search
 
-TODO explain beam search + Tensorflow code
+> What happens if the first time step is not sure about wether it should generate `comment` or `vas`? Imagine they have very close scores, but `vas` is slightly higher: then it would mess up the entire decoding! Is there a way to fix it?
+
+There indeed is a better way of performing decoding, called __beam search__. Instead of only predicting the token with the best score, we keep track of $ k $ hypotheses (for example $ k = 5 $, we refer to $ k $ as the __beam size__). At each new time step, for these 5 hypotheses we have $ V $ new possible tokens. It makes a total of $ 5 V $ new hypotheses. Then, only keep the $ 5 $ best ones, and so on... Formally, define $$ \mathcal{H}_ t $$ the set of hypotheses decoded at time step $$ t $$.
+
+$$ \mathcal{H}_ t := \{ (w^1_1, \dots, w^1_t), \dots, (w^k_1, \dots, w^k_t) \} $$
+
+For instance if $$ k = 2 $$, one possible $$ \mathcal{H}_ 2 $$ would be
+
+
+$$ \mathcal{H}_ 2 := \{ (\text{comment vas}), (\text{comment tu}) \} $$
+
+
+Now we consider all the possible candidates $$ \mathcal{C}_ {t+1}$$, produced from $$ \mathcal{H}_ t $$ by adding all possible new tokens
+
+$$ \mathcal{C}_ {t+1} := \bigcup_{i=1}^k \{ (w^i_1, \dots, w^i_t, 1), \dots, (w^i_1, \dots, w^i_t, V) \} $$
+
+and keep the $$ k $$ highest scores (probability of the sequence). If we keep our example
+
+$$ \begin{align*}
+\mathcal{C}_ 3 =& \{ (\text{comment vas comment}), (\text{comment vas vas}), (\text{comment vas tu})\}  \\
+\cup & \{ (\text{comment tu comment}), \ \ (\text{comment tu vas}), \ \ (\text{comment tu tu}) \}
+\end{align*}
+$$
+
+and for instance we can imagine that the 2 best ones would be
+
+$$ \mathcal{H}_ 3 := \{ (\text{comment vas tu}), (\text{comment tu vas}) \} $$
+
+
+Once every hypothesis reached the `<eos>` token, we return the hypothesis with the highest score.
+
+### Beam Search Decoder Cell
+
+> We can follow the same approach as in the greedy method and use `dynamic_decode`
+
+Let's create a new wrapper for `AttentionCell` in the same way we did for `GreedyDecoderCell`. This time, the code is going to be more complicated and the following is just for intuition. Note that when selecting the top $$ k $$ hypotheses from the set of candidates, we must know which "beginning" they used (=parent hypothesis).
+
+```python
+class BeamSearchDecoderCell(object):
+
+    # notice the same arguments as for GreedyDecoderCell
+    def step(self, time, state, embedding, finished):
+        # compute new logits
+        logits, new_cell_state = self._attention_cell.step(embedding, state.cell_state)
+
+        # compute log probs of the step (- log p(w) for all words w)
+        # shape = [batch_size, beam_size, vocab_size]
+        step_log_probs = tf.nn.log_softmax(new_logits)
+
+        # compute scores for the (beam_size * vocabulary_size) new hypotheses
+        log_probs = state.log_probs + step_log_probs
+
+        # get top k hypotheses
+        new_probs, indices = tf.nn.top_k(log_probs, self._beam_size)
+
+        # get ids of next token along with the parent hypothesis
+        new_ids = ...
+        new_parents = ...
+
+        # compute new embeddings, new_finished, new_cell state...
+        new_embedding = tf.nn.embedding_lookup(self._embeddings, new_ids)
+```
+> Look at [github](https://github.com/guillaumegenthial/img2latex/blob/master/model/components/beam_search_decoder_cell.py) for the details. The main idea is that we add a beam dimension to every tensor, but when feeding it into `AttentionCell` we merge the beam dimension with the batch dimension. There is also some trickery involved to compute the parents and the new ids using modulos.
 
 ## Conclusion
 
-TODO invite people to go to deeper levels of Tensorflow (TensorArrays, while_loop, nest.map_structure, custom RNNCells, etc.)
+__Limitations__ In this article we covered the seq2seq framework in details, from the concepts to the code. We also applied it to the [im2latex](https://openai.com/requests-for-research/#im2latex) challenge. We showed that training is different than decoding. We covered two methods for decoding: __greedy__ and __beam search__. While beam search generally achieves better results, it is not perfect and still suffers from __exposure bias__. During training, the model is never exposed to its errors! It also suffers from __Loss-Evaluation Mismatch__. During training, the model is optimized w.r.t. token-level cross entropy, while we are interested about the reconstruction of the whole sentence.
+
+__Metrics__ This raises the question of *how do we evaluate the performance of our model?*. We can use standard metrics from Machine Translation like [BLEU](https://en.wikipedia.org/wiki/BLEU) to evaluate how good the decoded LaTeX is compared to the reference. We can also choose to compile the predicted LaTeX sequence to get the image of the formula, and then compare this image to the orignal. As a formula is a sequence, computing the pixel-wise distance wouldn't really make sense. A good idea is proposed by [Harvard's paper](http://lstm.seas.harvard.edu/latex). First, slice the image vertically. Then, compare the edit distance between these slices...
+
+__Tensorflow__ At some point, we omitted details about `TensorArrays` or `nest.map_structure`. It turned out to be easier than I thought to use these low level elements of Tensorflow. The `nest` module was particularly useful for applying a function to a structure of Tensors (like our `AttentionState`). The `TensorArrays` could not be circumvented for the `while_loop` but caused little problems. The use of these tools makes recurrent logic programming possible and dimishes the significance of some critics made to Tensorflow.
+
+{% include double-image.html
+    url1="/assets/img2latex/ref.png" caption1=""
+    url2="/assets/img2latex/pred.png" caption2=""
+    size="50%"
+    description="Error example - which one is the reference?" %}
