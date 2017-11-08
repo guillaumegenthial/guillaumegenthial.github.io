@@ -102,7 +102,7 @@ c_t &= \sum_{t'=0}^n \bar{\alpha}_{t'} e_{t'}
 \end{align*}
 $$
 
-{% include image.html url="/assets/img2latex/seq2seq_attention_mechanism.svg" description="Attention Mechanism" size="100%" %}
+{% include image.html url="/assets/img2latex/seq2seq_attention_mechanism_new.svg" description="Attention Mechanism" size="100%" %}
 
 
 The choice of the function $ f $ varies, but is usually one of the following
