@@ -69,13 +69,13 @@ The decoding stops when the predicted word is a special *end of sentence* token.
 
 > Intuitively, the hidden vector represents the "amount of meaning" that has not been decoded yet.
 
-The above methods aims at modelling the distribution of the next word conditionned on the beginning of the sentence
+The above method aims at modelling the distribution of the next word conditionned on the beginning of the sentence
 
-$$ \mathbb{P}\left[ y_{t+1} | y_1, \dots, y_{t} \right] $$
+$$ \mathbb{P}\left[ y_{t+1} | y_1, \dots, y_{t}, x_0, \dots, x_n \right] $$
 
 by writing
 
-$$ \mathbb{P}\left[ y_{t+1} | h_{t} \right] $$
+$$ \mathbb{P}\left[ y_{t+1} | y_t, h_{t}, e \right] $$
 
 ### Seq2Seq with Attention
 
