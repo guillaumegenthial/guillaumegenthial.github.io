@@ -2,7 +2,7 @@
 layout: post
 title:  "Seq2Seq for LaTeX generation (part II)"
 description: "Sequence to Sequence model (seq2seq) in Tensorflow + attention + positional embeddings + beam search - Im2LaTeX challenge - similar to Show Attend and Tell"
-excerpt: "Sequence to Sequence model with Tensorflow for LaTeX generation"
+excerpt: "Sequence to Sequence in Tensorflow for LaTeX generation"
 date:   2017-11-08
 mathjax: true
 comments: true
@@ -22,9 +22,7 @@ This post is the second in a [series](https://guillaumegenthial.github.io) about
 {% include image.html url="/assets/img2latex/img2latex_task.svg" description="Producing LaTeX code from an image" size="100%" %}
 
 
-> Code is available on [github](https://github.com/guillaumegenthial/im2latex). Though designed for *image to LaTeX* ([im2latex](https://openai.com/requests-for-research/#im2latex) challenge), it could be used for standard seq2seq with very little effort.
-
-
+Code is available on [github](https://github.com/guillaumegenthial/im2latex). Though designed for *image to LaTeX* ([im2latex](https://openai.com/requests-for-research/#im2latex) challenge), it could be used for standard seq2seq with very little effort.
 
 
 ## Introduction
@@ -457,12 +455,13 @@ class BeamSearchDecoderCell(object):
 
 I hope that you learned something with this post, either about the technique or Tensorflow. While the model achieves impressive performance (at least on short formulas with roughly 85% of the LaTeX being reconstructed), it still raises some questions that I list here:
 
-__Metrics__ *How do we evaluate the performance of our model?*. We can use standard metrics from Machine Translation like [BLEU](https://en.wikipedia.org/wiki/BLEU) to evaluate how good the decoded LaTeX is compared to the reference. We can also choose to compile the predicted LaTeX sequence to get the image of the formula, and then compare this image to the orignal. As a formula is a sequence, computing the pixel-wise distance wouldn't really make sense. A good idea is proposed by [Harvard's paper](http://lstm.seas.harvard.edu/latex). First, slice the image vertically. Then, compare the edit distance between these slices...
+*How do we evaluate the performance of our model?*. We can use standard metrics from Machine Translation like [BLEU](https://en.wikipedia.org/wiki/BLEU) to evaluate how good the decoded LaTeX is compared to the reference. We can also choose to compile the predicted LaTeX sequence to get the image of the formula, and then compare this image to the orignal. As a formula is a sequence, computing the pixel-wise distance wouldn't really make sense. A good idea is proposed by [Harvard's paper](http://lstm.seas.harvard.edu/latex). First, slice the image vertically. Then, compare the edit distance between these slices...
 
-__Tensorflow__ At some point, we omitted details about `TensorArrays` or `nest.map_structure`. It turned out to be easier than I thought to use these low level elements of Tensorflow. The `nest` module was particularly useful for applying a function to a structure of Tensors (like our `AttentionState`). The `TensorArrays` could not be circumvented for the `while_loop` but caused little problems. The use of these tools makes recurrent logic programming possible and dimishes the significance of some critics made to Tensorflow.
+*How to fix exposure bias?* While beam search generally achieves better results, it is not perfect and still suffers from __exposure bias__. During training, the model is never exposed to its errors! It also suffers from __Loss-Evaluation Mismatch__. The model is optimized w.r.t. token-level cross entropy, while we are interested about the reconstruction of the whole sentence...
+
 
 {% include double-image.html
     url1="/assets/img2latex/ref.png" caption1=""
     url2="/assets/img2latex/pred.png" caption2=""
     size="50%"
-    description="Error example - which one is the reference?" %}
+    description="An Example of LaTeX generation - which one is the reference?" %}

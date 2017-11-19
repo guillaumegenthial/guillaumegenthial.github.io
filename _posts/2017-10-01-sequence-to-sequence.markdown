@@ -2,7 +2,7 @@
 layout: post
 title:  "Seq2Seq for LaTeX generation (part I)"
 description: "Sequence to Sequence basics for Neural Machine Translation using Attention and Beam Search"
-excerpt: "Sequence to Sequence models with Attention and Beam Search - Concepts"
+excerpt: "Sequence to Sequence models with Attention and Beam Search - Explained"
 date:   2017-11-08
 mathjax: true
 comments: true
@@ -11,7 +11,7 @@ published: true
 
 This post is the first in a series about [__im2latex__](https://guillaumegenthial.github.io/image-to-latex.html): its goal is to cover the __concepts__ of Sequence-to-Sequence models with Attention and Beam search.
 
-> If you're already familiar with Seq2Seq
+> If you're already familiar with Seq2Seq and want to go straight to the Tensorflow code
 
 <div align="right" > <a href="https://guillaumegenthial.github.io/image-to-latex.html"><h3>> Go to part II</h3></a>  </div>
 
@@ -68,6 +68,14 @@ The decoding stops when the predicted word is a special *end of sentence* token.
 {% include image.html url="/assets/img2latex/seq2seq_vanilla_decoder.svg" description="Vanilla Decoder" size="90%" %}
 
 > Intuitively, the hidden vector represents the "amount of meaning" that has not been decoded yet.
+
+The above methods aims at modelling the distribution of the next word conditionned on the beginning of the sentence
+
+$$ \mathbb{P}\left[ y_{t+1} | y_1, \dots, y_{t} \right] $$
+
+by writing
+
+$$ \mathbb{P}\left[ y_{t+1} | h_{t} \right] $$
 
 ### Seq2Seq with Attention
 
