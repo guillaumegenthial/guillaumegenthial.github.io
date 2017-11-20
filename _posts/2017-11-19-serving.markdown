@@ -34,8 +34,10 @@ Our goal is to build an API that will look like
 When I was googling about *"serving a tf model"* I stumbled upon [Tensorflow serving](https://www.tensorflow.org/serving/) which is the *official* framework to build a scalable API. If you're looking to deploy a model in production and you are interested in scalability, batching over users, versionning etc., you should definetely have a look at [this article](https://towardsdatascience.com/how-to-deploy-machine-learning-models-with-tensorflow-part-1-make-your-model-ready-for-serving-776a14ec3198).
 
 I will cover a much simpler approach, similar to the one used [here](https://github.com/sugyan/tensorflow-mnist). We'll use
-- [Flask](http://flask.pocoo.org) to build the API (back-end)
-- [jquery.ajax](http://api.jquery.com/jquery.ajax/) to handle requests to the API in whatever front-end you use (github pages for instance)
+- [Flask](http://flask.pocoo.org) to build the __API__ (back-end)
+- [jquery.ajax](http://api.jquery.com/jquery.ajax/) to handle requests to the API from your __client__ (front-end) - for instance github pages
+
+{% include image.html url="/assets/serving/outline.svg" description="Outline" size="100%" %}
 
 ## A simple Flask API
 
