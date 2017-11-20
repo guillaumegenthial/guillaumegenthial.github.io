@@ -58,10 +58,12 @@
 
 
     $( document ).ready(function() {
-        // send one request for everyone loading the page to keep the dyno awake
-        var input = "I love Paris";
-        api_call(input);
-        input = "";
+        // randomly request for everyone loading the page to keep api awake
+        if ( Math.random() > 0.5 ) {
+            var input = "I love Paris";
+            api_call(input);
+            input = "";
+        }
 
         // request when clicking on the button
         $('#btn').click(function() {

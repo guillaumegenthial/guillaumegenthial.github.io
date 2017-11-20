@@ -23,7 +23,7 @@ Enter sentences like `Monica and Chandler met at Central Perk`, `Obama was presi
     url="https://api-ner.herokuapp.com/api"
 %}
 
-**Disclaimer:** as you may notice, the tagger is far from being perfect. Some errors are due to the fact that the demo uses a reduced vocabulary (lighter for the API). But not all. It is also very sensible to capital letters, which comes both from the architecture of the model and the training data.
+**Disclaimer:** as you may notice, the tagger is far from being perfect. Some errors are due to the fact that the demo uses a reduced vocabulary (lighter for the API). But not all. It is also very sensible to capital letters, which comes both from the architecture of the model and the training data. For more information about the demo, see [here](https://guillaumegenthial.github.io/serving.html).
 
 ## Introduction
 

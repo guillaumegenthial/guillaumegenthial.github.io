@@ -1,0 +1,286 @@
+---
+layout: post
+title:  "Serving a Tensorflow model with Flask"
+description: "Serve a Tensorflow model with a simple API using Flask"
+excerpt: "How to deploy a simple python API with Flask"
+date:   2017-11-19
+mathjax: true
+comments: true
+published: true
+---
+
+Code for the demo is available on [github](https://github.com/guillaumegenthial/api_ner).
+
+## Introduction
+
+I received some questions about the demo I built for [Named Entity Recognition](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html) and as I spent some time building it, struggling with what technique to use, I came to the conclusion that sharing my experience would certainly benefit others.
+
+> This article will quickly cover how to deploy a __demo__ of a tensorflow model and serve it with a Flask API in python.
+
+
+Our goal is to build an API that will look like
+
+{% include api_ner.html
+    placeholder="I love Paris"
+    default_input="I love Paris"
+    default_output="O O    B-LOC"
+    header="Interact with the model!"
+    url="https://api-ner.herokuapp.com/api"
+%}
+
+
+### Overview
+
+When I was googling about *"serving a tf model"* I stumbled upon [Tensorflow serving](https://www.tensorflow.org/serving/) which is the *official* framework to build a scalable API. If you're looking to deploy a model in production and you are interested in scalability, batching over users, versionning etc., you should definetely have a look at [this article](https://towardsdatascience.com/how-to-deploy-machine-learning-models-with-tensorflow-part-1-make-your-model-ready-for-serving-776a14ec3198).
+
+I will cover a much simpler approach, similar to the one used [here](https://github.com/sugyan/tensorflow-mnist). We'll use
+- [Flask](http://flask.pocoo.org) to build the API (back-end)
+- [jquery.ajax](http://api.jquery.com/jquery.ajax/) to handle requests to the API in whatever front-end you use (github pages for instance)
+
+## A simple Flask API
+
+To build the API, we need to perform 2 steps, that we'll put in 2 different files
+
+1. wrap our model so that it can process the request sent by the client (file `serve.py`)
+2. build the app - handle requests and return the output (file `app.py`)
+
+###  1. Wrap the model `serve.py`
+
+Assume we have a folder `model` in which we put all the code we used to develop our Tensorflow model (or any kind of model actually, doesn't have to be TF).
+
+```
+serve.py
+app.py
+model/
+    __init__.py
+    base_model.py
+    ner_model.py
+    config.py
+    ...
+```
+
+The `serve.py` file defines a function `get_model_api` that returns a lambda function able to process the request. The steps are
+
+1. Initialize the model and reload the weights
+2. Process the input (from a sentence `I love Paris` to a list of words `I` `love` `Paris` for instance)
+2. Call the predict function of our model on the pre-processed input (here `model.predict()`)
+3. Post-process the output of our model (here we just align strings)
+
+
+```python
+from model.ner_model import NERModel
+from model.config import Config
+from model.utils import align_data
+
+
+def get_model_api():
+    """Returns lambda function for api"""
+    # 1. initialize model once and for all and reload weights
+    config = Config()
+    model  = NERModel(config)
+    model.build()
+    model.restore_session("results/crf/model.weights/")
+
+    def model_api(input_data):
+        # 2. process input with simple tokenization and no punctuation
+        punc = [",", "?", ".", ":", ";", "!", "(", ")", "[", "]"]
+        s = "".join(c for c in input_data if c not in punc)
+        words_raw = s.strip().split(" ")
+        # 3. call model predict function
+        preds = model.predict(words_raw)
+        # 4. process the output
+        output_data = align_data({"input": words_raw, "output": preds})
+        # 5. return the output for the api
+        return output_data
+
+    return model_api
+
+```
+
+> Why do we need to create this logic here? I could put everything in the `model.predict()` function...
+
+Good point. This design choice is justified by the fact that usually your model is developped for a special type of input and when you build an API you want to preprocess the request before feeding it to the model. You could put everything in one file, either on the model side or the app side but it's better to split functionnalities. You can also imagine creating some kind of versionning or specialized API by giving a special argument to `get_model_api`...
+
+To sum up, what we did is create a function `get_model_api()` that gives us our model `model_api` that we can apply to the request to get the response!
+
+```python
+model_api = get_model_api()
+response = model_api(request)
+```
+
+###  2. Building the app `app.py`
+
+This is where we communicate with the client and build an actual API with Flask. Now that we can get a lambda function that will process the request, we need to call it and actually *serve our model*.
+
+First, let's import the necessary modules
+
+```python
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from serve import get_model_api  # see part 1.
+```
+
+and define the app and load the model
+
+```python
+app = Flask(__name__)
+CORS(app) # needed for cross-domain requests, allow everything by default
+model_api = get_model_api()
+```
+
+Now, let's define the behavior of our API, depending on the route it gets. We need to specify the default behavior and handle errors first
+
+```python
+# default route
+@app.route('/')
+def index():
+    return "Index API"
+
+# HTTP Errors handlers
+@app.errorhandler(404)
+def url_error(e):
+    return """
+    Wrong URL!
+    <pre>{}</pre>""".format(e), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return """
+    An internal error occurred: <pre>{}</pre>
+    See logs for full stacktrace.
+    """.format(e), 500
+```
+
+
+Finally, create the actual route for the API
+
+
+```python
+# API route
+@app.route('/api', methods=['POST'])
+def api():
+    input_data = request.json
+    output_data = model_api(input_data)
+    response = jsonify(output_data)
+    return response
+```
+
+and this only takes 3 lines, as all the model-specific logic is defined in `serve.py`! Here we assume that the API posts data in json.
+
+Now, let's run the app
+
+```python
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True)
+```
+
+and execute `python app.py`. It will reload the model and run the API locally. Navigate on your browser to `http://0.0.0.0:5000/` (or any path printed in your Terminal window). You should see `Index API`, which is the default message for the default route!
+
+## Handle requests in Ajax
+
+Now that we built the API, we need to create the client side that will send requests. It can be done easily with ajax and jquery. First, let's consider a `simple_client.html` file
+
+```html
+<!-- include ajax -->
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+
+<!-- form, button and output -->
+<input type="text" id="input" name="input" placeholder="Enter sentence"/>
+<button id="btn">Call API</button>
+<div id="api_output"> </div>
+```
+
+you should see something like this
+
+<!-- form, button and output -->
+<div class="text-center" style="padding-bottom: 0.5cm">
+    <input type="text" placeholder="Enter sentence"/>
+    <button >Call API</button>
+</div>
+
+
+Now, let's define a function `api_call` that will handle the request when the button is clicked.
+
+```html
+<script type="text/javascript">
+    function api_call(input) {
+        $.ajax({
+            url: "http://0.0.0.0:5000/api",
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(input),
+            success: function( data, textStatus, jQxhr ){
+                $('#api_output').html( data.output );
+                $("#input").val("");
+            },
+            error: function( jqXhr, textStatus, errorThrown ){
+                $('#api_output').html( "There was an error" );
+                console.log( errorThrown );
+            },
+            timeout: 3000
+        });
+    }
+    $( document ).ready(function() {
+        // request when clicking on the button
+        $('#btn').click(function() {
+            var input = $("#input").val();
+            api_call(input);
+            input = "";
+        });
+    });
+</script>
+```
+
+
+A few comments here. You need to change the `url` to the actual path of the API. We get values of different `html` fields by calling `$('#id_name')` (to get the element by id). For instance, `$("#input").val()` gets what we entered in the form. We also set a timeout of 3 seconds at which point we consider that the call to the API failed.
+
+Now, test your client-API by running `python app.py` and opening `simple_client.html` in your browser.
+
+
+## Deploy on Heroku
+
+Here you are, you've coded your API. But where do you host it? Depending on your needs (and the number of expected requests) you might want to look for different solutions. For __medium demand__ (more than 100 requests per day), you might want to have a look at plans from [Google cloud](https://cloud.google.com/appengine/), [Amazon](https://aws.amazon.com/getting-started/projects/deploy-python-application/) or [Microsoft Azure](https://docs.microsoft.com/en-us/azure/app-service/). For __lighter demand (my case)__, where the number of requests is too low to justify using these paid plans, a good option is to use the free plan of [Heroku](https://devcenter.heroku.com/categories/python) which has the competitive advantage of being __extremely easy__ to setup and __free__. As there is nothing such as a free lunch, it will force your app to sleep after 30min of inactivity and limits RAM to 512MB...
+
+Heroku requires 3 additionnal files
+
+-  `requirements.txt` list the python dependencies
+```
+tensorflow==1.4.0
+numpy==1.13.3
+...
+```
+
+- `runtime.txt` specifies the python version
+```
+python-3.6.0
+```
+
+- `Procfile` that specifies what will be run in the Heroku environment
+```
+web: gunicorn app:app
+```
+
+Now that your app is ready, deploy it on heroku ([official documentation](https://devcenter.heroku.com/articles/deploying-python))
+
+1. Create an account on [Heroku](https://signup.heroku.com/login)
+2. Install the [Heroku Command Line Tools](https://devcenter.heroku.com/articles/heroku-cli)
+3. Create a new app and give it a name, for instance `my-new-app`
+4. Log-in to Heroku on your computer by entering in your terminal `heroku login` and enter your credentials.
+5. Go to your app directory, initialize git if necessary (`git init`) and add the heroku remote
+```
+heroku git:remote -a my-new-app
+```
+6. Push the code to heroku with
+```
+git add .
+git commit -am "initial deployment"
+git push heroku master
+```
+7. Now the url of your api is `https://my-new-app.herokuapp.com/api`!
+
+
+## Conclusion
+
+The code for this demo is available on [github](https://github.com/guillaumegenthial/api_ner). You'll also find the "good-looking" form as introduced at the beginning of the article!
