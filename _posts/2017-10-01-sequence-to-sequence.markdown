@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Seq2Seq for LaTeX generation (part I)"
+title:  "Sequence to Sequence models with Attention and Beam Search"
 description: "Sequence to Sequence basics for Neural Machine Translation using Attention and Beam Search"
-excerpt: "Sequence to Sequence models with Attention and Beam Search - Explained"
+excerpt: "Seq2Seq for LaTeX generation - part I"
 date:   2017-11-08
 mathjax: true
 comments: true

@@ -40,6 +40,11 @@ curriculum:
     info: Fall 2017
     description: Course Assistant for CS229
     url: http://cs229.stanford.edu
+  - image: img/stanfordmlgrouplogo.svg
+    title: Machine Learning Group
+    info: Fall 2017
+    description: Research Project in NLP
+    url: https://stanfordmlgroup.github.io
   - image: img/rl.png
     title: Reinforcement Learning
     info: Spring 2017
