@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Sequence to Sequence in Tensorflow for LaTeX generation"
+title:  "Seq2Seq for LaTeX generation"
 description: "Sequence to Sequence model (seq2seq) in Tensorflow + attention + positional embeddings + beam search - Im2LaTeX challenge - similar to Show Attend and Tell"
 excerpt: "Seq2Seq for LaTeX generation - part II"
 date:   2017-11-08

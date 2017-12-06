@@ -205,34 +205,32 @@ you should see something like this
 
 Now, let's define a function `api_call` that will handle the request when the button is clicked.
 
-```html
-<script type="text/javascript">
-    function api_call(input) {
-        $.ajax({
-            url: "http://0.0.0.0:5000/api",
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(input),
-            success: function( data, textStatus, jQxhr ){
-                $('#api_output').html( data.output );
-                $("#input").val("");
-            },
-            error: function( jqXhr, textStatus, errorThrown ){
-                $('#api_output').html( "There was an error" );
-                console.log( errorThrown );
-            },
-            timeout: 3000
-        });
-    }
-    $( document ).ready(function() {
-        // request when clicking on the button
-        $('#btn').click(function() {
-            var input = $("#input").val();
-            api_call(input);
-            input = "";
-        });
+```js
+function api_call(input) {
+    $.ajax({
+        url: "http://0.0.0.0:5000/api",
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(input),
+        success: function( data, textStatus, jQxhr ){
+            $('#api_output').html( data.output );
+            $("#input").val("");
+        },
+        error: function( jqXhr, textStatus, errorThrown ){
+            $('#api_output').html( "There was an error" );
+            console.log( errorThrown );
+        },
+        timeout: 3000
     });
-</script>
+}
+$( document ).ready(function() {
+    // request when clicking on the button
+    $('#btn').click(function() {
+        var input = $("#input").val();
+        api_call(input);
+        input = "";
+    });
+});
 ```
 
 
