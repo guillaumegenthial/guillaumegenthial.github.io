@@ -1,23 +1,44 @@
----
-layout: default
----
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en" }}">
 
-<div class="home">
+  {% include head.html %}
+  {% seo %}
 
-  <!-- <h1 class="page-heading">Posts</h1> -->
-  
-  {{ content }}
+  <body>
 
-  <ul class="post-list">
-    {% for post in site.posts %}
-      <li>
-        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
-        <a class="post-link" href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
-        {{ post.excerpt }}
-      </li>
-    {% endfor %}
-  </ul>
+    {% include header.html %}
 
-  <!-- <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | relative_url }}">via RSS</a></p> -->
+    <main class="page-content" aria-label="Content" onclick="hideClass()">
+      <div class="wrapper">
+        <div class="home">
+          
+          <div class="home-page-content">
+            {{ content }}
+          </div>
 
-</div>
+          <ul class="post-list">
+            {% for post in site.posts %}
+              <li>
+                <a class="post-preview" href="{{ post.url | relative_url }}"> 
+                  <span class="post-meta post-metadata">{{ post.date | date: "%b %-d, %Y" }}</span>
+                  <div class="post-description"> 
+                    <div class="post-preview-title">{{ post.title | escape }}</div>
+                    <div class="post-preview-excerpt">{{ post.excerpt }}</div>
+                  </div>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+
+        </div>
+
+      </div>
+    </main>
+
+    {% include footer.html %}
+
+  </body>
+
+</html>
+
+

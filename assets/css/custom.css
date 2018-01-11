@@ -1,24 +1,19 @@
-/* begin drag drop zone */
-.box__dragndrop,
-.box__uploading,
-.box__success,
-.box__error {
-  display: none;
+body {
+  /* font-family: Helvetica, Arial, sans-serif; */
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 300;
+  background-color: #fdfdfd;
+
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
 }
 
-.box.has-advanced-upload {
-  background-color: white;
-  outline: 2px dashed black;
-  outline-offset: -10px;
+.home-page-content {
+  padding-bottom: 20px;
 }
-.box.has-advanced-upload .box__dragndrop {
-  display: inline;
-}
-
-.box.is-dragover {
-  background-color: grey;
-}
-/* end drag drop zone*/
 
 .center-image
 {
@@ -34,6 +29,72 @@ p {
 li {
     text-align: justify;
 }
+
+.title-wrapper {
+  text-align: center;
+}
+
+.post-preview {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 24px 0;
+}
+
+a.post-preview {
+  color: inherit;
+}
+
+a.post-preview:hover div.post-preview-title {
+  color: #B70B14;
+  text-decoration: none;
+  font-weight: normal;
+}
+
+
+.post-preview-title {
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.post-preview:last-of-type {
+  border-bottom: none;
+}
+
+.post-metadata {
+  display: inline-block;
+  float: left;
+  padding-top: 1em;
+  margin-right: 50px;
+}
+
+.post-description {
+  position: relative;
+  text-align: left;
+  display: inline-block;
+  vertical-align: top;
+}
+
+
+.site-header {
+  background-color: #223141;
+}
+
+.site-title {
+  color: #FFF !important;
+  float: none;
+}
+
+.page-link {
+  color: #bbb !important;
+}
+
+.page-content {
+  flex: 1;
+}
+
+.site-footer {
+  background-color: #EEF1F5;
+}
+
 
 .api-pre {
     display: flex;
