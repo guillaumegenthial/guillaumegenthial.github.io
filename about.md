@@ -4,9 +4,9 @@ title: About
 permalink: /about/
 ---
 
-I am currently enrolled in my 2nd year as a master's student in Computational and Mathematical Engineering (ICME) at <b>Stanford University</b>. I also have a masters' degree in Applied Mathematics from the <b>Ecole polytechnique</b> (France) where I also studied computer science, quantum and statistical physics. 
+I am currently enrolled in my 2nd year as a master's student in Computational and Mathematical Engineering (ICME) at <b>Stanford University</b>, specializing in AI. I also have a MS in Applied Mathematics from the <b>Ecole polytechnique</b> (France) where I minored in physics. 
 
-I am particularly interested in Natural Language Processing and AI. I have a lot of experience in python and TensorFlow (see for instance my <a href="https://github.com/guillaumegenthial/im2latex">seq2seq implementation</a>).
+I am particularly interested in <b>Natural Language Processing</b> and AI. I have a lot of experience in python and <b>TensorFlow</b> (see for instance my <a href="https://github.com/guillaumegenthial/im2latex">seq2seq implementation</a>).
 
 I worked with the SLAC machine learning group during Winter 17 on applying computer vision techniques for cluster-splitting in ATLAS. I also did a research internship on NER at <a href="https://www.proxem.com/en/">Proxem</a> and a research project with <a href="https://www.riminder.net">Riminder</a> on chatbots. Since September 17, I'm working with the <a href="https://stanfordmlgroup.github.io">Stanford Machine Learning Group</a> on the Error-Correction task. 
 

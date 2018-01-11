@@ -68,7 +68,14 @@ a.post-preview:hover div.post-preview-title {
   display: inline-block;
   float: left;
   padding-top: 1em;
-  width: 20%;
+  padding-right: 20px;
+  
+}
+
+@media(min-width: 768px) {
+  .post-metadata {
+    width: 15%;
+  }
 }
 
 .post-description {
