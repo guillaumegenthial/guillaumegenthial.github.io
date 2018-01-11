@@ -9,6 +9,11 @@ body {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
+  /*letter-spacing: normal;*/
+}
+
+.post {
+  padding-top: 30px;
 }
 
 .home-page-content {
@@ -63,7 +68,7 @@ a.post-preview:hover div.post-preview-title {
   display: inline-block;
   float: left;
   padding-top: 1em;
-  margin-right: 50px;
+  width: 20%;
 }
 
 .post-description {

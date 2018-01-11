@@ -36,6 +36,11 @@ exclude:
 
 curriculum:
   - image: img/rl.png
+    title: Deep Learning
+    info: Winter 2018
+    description: Course Assistant for CS230
+    url: http://cs230.stanford.edu
+  - image: img/rl.png
     title: Machine Learning
     info: Fall 2017
     description: Course Assistant for CS229
