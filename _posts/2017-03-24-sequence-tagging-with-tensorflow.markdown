@@ -6,6 +6,8 @@ excerpt: "bi-LSTM + CRF with character embeddings for NER and POS"
 date:   2017-04-05
 mathjax: true
 comments: true
+tags: tensorflow NLP
+github: https://github.com/guillaumegenthial/sequence_tagging
 ---
 
 Code is available on [github](https://github.com/guillaumegenthial/sequence_tagging).

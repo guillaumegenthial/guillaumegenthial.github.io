@@ -7,6 +7,8 @@ date:   2017-11-08
 mathjax: true
 comments: true
 published: true
+tags: tensorflow
+github: https://github.com/guillaumegenthial/im2latex
 ---
 
 

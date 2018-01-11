@@ -7,6 +7,7 @@ date:   2017-11-08
 mathjax: true
 comments: true
 published: true
+tags: NLP Vision
 ---
 
 This post is the first in a series about [__im2latex__](https://guillaumegenthial.github.io/image-to-latex.html): its goal is to cover the __concepts__ of Sequence-to-Sequence models with Attention and Beam search.
