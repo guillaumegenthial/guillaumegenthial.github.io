@@ -109,9 +109,9 @@ The choice of the function $ f $ varies, but is usually one of the following
 $$
 f(h_{t-1}, e_{t'}) =
 \begin{cases}
-h_{t-1}^T e_{t'}\\
-h_{t-1}^T W e_{t'}\\
-w^T [h_{t-1}, e_{t'}]\\
+h_{t-1}^T e_{t'} & \text{dot}\\
+h_{t-1}^T W e_{t'} & \text{general}\\
+v^T \tanh \left(W [h_{t-1}, e_{t'}]\right) & \text{concat}\\
 \end{cases}
 $$
 
