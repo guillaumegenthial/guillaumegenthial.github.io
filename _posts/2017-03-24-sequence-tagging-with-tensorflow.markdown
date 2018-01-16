@@ -227,7 +227,7 @@ C(y_1, \ldots, y_m) &= b[y_1] &+ \sum_{t=1}^{m} s_t [y_t] &+ \sum_{t=1}^{m-1} T[
 \end{align*}
 $$
 
-where $ T $ is a transition matrix in $ \mathbb{R}^{9 \times 9} $ and $ e, b \in \mathbb{R}^9 $ are vectors of scores that capture the cost of beginning or starting with a given tag. The use of the matrix $ T $ captures linear (one step) dependencies between tagging decisions.
+where $ T $ is a transition matrix in $ \mathbb{R}^{9 \times 9} $ and $ e, b \in \mathbb{R}^9 $ are vectors of scores that capture the cost of beginning or ending with a given tag. The use of the matrix $ T $ captures linear (one step) dependencies between tagging decisions.
 
 {% include double-image.html url1="/assets/crf1.png" caption1="The path PER-O-LOC has a score of $1+10+4+3+2+11+0=31$"
 url2="/assets/crf2.png" caption2="The path PER-PER-LOC has a score of $ 1+10+2+4-2+11+0=26 $"
