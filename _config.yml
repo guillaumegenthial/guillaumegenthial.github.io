@@ -40,30 +40,15 @@ curriculum:
     info: 2018
     description: NLP Engineer
     url: http://roamanalytics.com
-  - image: img/rl.png
-    title: Deep Learning
-    info: Winter 2018
-    description: Course Assistant for CS230
-    url: http://cs230.stanford.edu
-  - image: img/rl.png
-    title: Machine Learning
-    info: Fall 2017
-    description: Course Assistant for CS229
-    url: http://cs229.stanford.edu
   - image: img/stanfordmlgrouplogo.svg
     title: Machine Learning Group
     info: Fall 2017
     description: Research Project in NLP
     url: https://stanfordmlgroup.github.io
-  - image: img/rl.png
-    title: Reinforcement Learning
-    info: Spring 2017
-    description: Course Assistant for CS234
-    url: http://web.stanford.edu/class/cs234/index.html
-  - image: img/snlp.jpg
-    title: Deep Learning for NLP
-    info: Winter 2016
-    description: Course Assistant for CS224N
+  - image: img/stanford2.png
+    title: Teaching Assistant
+    info: 2017-2018
+    description: CS224n, CS229, CS230, CS234
     url: http://cs224n.stanford.edu
   - image: img/stanford.png
     title: Stanford University
