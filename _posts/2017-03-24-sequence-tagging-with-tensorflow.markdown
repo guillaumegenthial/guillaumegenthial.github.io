@@ -7,10 +7,18 @@ date:   2017-04-05
 mathjax: true
 comments: true
 tags: tensorflow NLP
-github: https://github.com/guillaumegenthial/sequence_tagging
+github: https://github.com/guillaumegenthial/tf_ner
 ---
 
-Code is available on [github](https://github.com/guillaumegenthial/sequence_tagging).
+
+<div class="alert alert-success" role="alert">
+  <h4 class="alert-heading"> 🎉 🤓 🎊 <a href="https://github.com/guillaumegenthial/tf_ner">New implementation!</a> 🎊 🤓 🎉</h4>
+  <p>A <strong>better, faster, stronger version</strong> of the code is available <strong><a href="https://github.com/guillaumegenthial/tf_ner">on github</a> </strong> (with <code><a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset">tf.data</a></code> and <code><a href="https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator">tf.estimator</a></code>).</p>
+  <hr>
+  <p class="mb-0">Different variants are implemented in <strong>standalone, short</strong> (~100 lines of Tensorflow) python scripts. These implementations are state-of-the-art, in the sense that they do as least as well as the results reported in the papers. The best model achieves in average an <strong>F1 score of 91.21</strong>. You can train it on your laptop in <strong>~ 20/35 min</strong> (no GPU).</p>
+</div>
+
+The original implementation is still available on [github](https://github.com/guillaumegenthial/sequence_tagging).
 
 
 ## Demo
