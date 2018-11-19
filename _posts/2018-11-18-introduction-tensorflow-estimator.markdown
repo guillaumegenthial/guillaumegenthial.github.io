@@ -8,38 +8,57 @@ mathjax: true
 comments: true
 tags: tensorflow NLP
 github: https://github.com/guillaumegenthial/tf_ner
-published: False
+published: True
 ---
 
 
-Code is available on [github](https://github.com/guillaumegenthial/tf_ner/blob/master/models/lstm_crf/main.py).
+__Code__ available on [github](https://github.com/guillaumegenthial/tf_ner/blob/master/models/lstm_crf/main.py).
+
+__Topics__ *tf.data, tf.estimator, pathlib, LSTMBlockFusedCell, tf.contrib.lookup.index_table_from_file, tf.contrib.estimator.stop_if_no_increase_hook, tf.data.Dataset.from_generator, tf.metrics, tf.logging*
+
+
+__Other__
+- You can find an [overview of good practices of Tensorflow for NLP](https://roamanalytics.com/2018/09/24/good-practices-in-modern-tensorflow-for-nlp/) that I've written as part of my job as an NLP engineer at Roam Analytics ([blog post](https://roamanalytics.com/2018/09/24/good-practices-in-modern-tensorflow-for-nlp/), [notebook](http://nbviewer.jupyter.org/github/roamanalytics/roamresearch/blob/master/BlogPosts/Modern_TensorFlow/modern-tensorflow.ipynb), [github](https://github.com/roamanalytics/roamresearch/tree/master/BlogPosts/Modern_TensorFlow))
+- The [course blog of Stanford's CS229](https://cs230-stanford.github.io/tensorflow-input-data.html) also hosts some tutorials that I wrote with one of my friends, [Olivier Moindrot](https://omoindrot.github.io/).
+
+
+> This blog post provides an introduction to `tf.data` and `tf.estimator` with a step-by-step review of my bi-LSTM + CRF implementation.
 
 ## Outline
 
 <!-- MarkdownTOC -->
 
-- Introduction
-- Global configuration
-- Feed data to your model with tf.data
-    - A simple example
-    - Test your tf.data pipeline
-    - Read from file and tokenize
-- Defining our model with tf.estimator
+* [Introduction](#introduction)
+* [Global configuration](#global-configuration)
+* [Feed data with tf.data](#feed-data-with-tfdata)
+    - [A simple example](#a-simple-example)
+    - [Test your tf.data pipeline](#test-your-tfdata-pipeline)
+    - [Read from file and tokenize](#read-from-file-and-tokenize)
+* [Define a model with tf.estimator](#define-a-model-with-tfestimator)
+    - [What if I need to manually set my features and labels?](#what-if-i-need-to-manually-set-my-features-and-labels)
+    - [Global Logic of the model_fn](#global-logic-of-the-model_fn)
+    - [Define a bi-LSTM + CRF model_fn](#define-a-bi-lstm--crf-model_fn)
+* [Instantiate an Estimator](#instantiate-an-estimator)
+* [Train an Estimator with early stopping](#train-an-estimator-with-early-stopping)
 
 <!-- /MarkdownTOC -->
 
 
 
+
+
+<a id="introduction"></a>
 ## Introduction
 
-Not so long ago, designing Deep Learning software meant writing custom `Model` classes. However, with code and implementations piling up on github and other open-source platforms, developers soon had enough examples to start designing unified high-level APIs for models and data loading. After all, we are all lazy and writing boilerplate code is not necessarily our cup of tea.
+Not so long ago, designing Deep Learning software meant writing custom `Model` classes. However, with code and implementations piling up on github and other open-source platforms, developers soon had enough examples to start designing __unified high-level APIs for models and data loading__. After all, we are all lazy and writing boilerplate code is not necessarily our cup of tea.
 
 Thanks to intense competition on the Deep Learning Framework landscape, driving innovation and development of new functionnalities, brillant minds at Google and elsewhere worked on new additions to Tensorflow. Don't ask me which version has it all (but I'm pretty sure 1.9 is good enough).
 
-For those unfamiliar with Tensorflow, just wanting to bootstrap their project and reading on the web good and bad things about it, especially how so much more user-friendly its rival, Facebook's newborn [pyTorch](https://pytorch.org/) is, well, forget about those sterile debates and try them both: they are more than good enough and when it comes to chosing which one to use for your company or your project, it depends more on what existing implementation is available and your technical debt than the frameworks' specificities.
+<!-- For those unfamiliar with Tensorflow, just wanting to bootstrap their project and reading on the web good and bad things about it, especially how so much more user-friendly its rival, Facebook's newborn [pyTorch](https://pytorch.org/) is, well, forget about those sterile debates and try them both: they are more than good enough and when it comes to chosing which one to use for your company or your project, it depends more on what existing implementation is available and your technical debt than the frameworks' specificities. -->
 
-This blog post provides an __example__ and gives some advice about how to use the new high-level Tensorflow APIs and demonstrate how you can quickly get a state-of-the-art NLP model up and running with as few as a 100 lines of code!
+This blog post provides an __example of how to use `tf.data` and `tf.estimator` for NLP__ and gives some advice and demonstrate how you can quickly get a state-of-the-art NLP model up and running with as few as a 100 lines of Tensorflow code!
 
+<a id="global-configuration"></a>
 ## Global configuration
 
 If you like having an idea about what's happening when you're running your code, you need to change the __level of verbosity__ of tensorflow logging (the module `tf.logging` which is built on top of the standard `logging` module). It does seem a bit weird that we have to take care of it, but hey, nothing is perfect and there probably is a reason that I am unaware of (nobody's omniscient).
@@ -63,14 +82,15 @@ handlers = [
 logging.getLogger('tensorflow').handlers = handlers
 ```
 
-> If you don't know / don't use the `pathlib` module (python3 only), try using it. It bundles a lot of `os.path` functionnality (and more) in a much nicer and easy-to-use package. I started using it after reading about it on [this blog](https://medium.com/@ageitgey/python-3-quick-tip-the-easy-way-to-deal-with-file-paths-on-windows-mac-and-linux-11a072b58d5f) which also has a lot of other excellent articles.
+> If you don't know / don't use the [`pathlib`](https://docs.python.org/3/library/pathlib.html) module (python3 only), try using it. It bundles a lot of `os.path` functionnality (and more) in a much nicer and easy-to-use package. I started using it after reading about it on [this blog](https://medium.com/@ageitgey/python-3-quick-tip-the-easy-way-to-deal-with-file-paths-on-windows-mac-and-linux-11a072b58d5f) which also has a lot of other excellent articles.
 
 > We create two `handlers`: one that will write the logs to `sys.stdout` (the terminal window so that you can see what's going on), and one to a file (as the `FileHandler` name implies). I prefer resetting the `handlers` completely to avoid double-logging.
 
 So far, no Deep Learning, no Tensorflow (or barely), just python trickery.
 
 
-## Feed data to your model with tf.data
+<a id="feed-data-with-tfdata"></a>
+## Feed data with tf.data
 
 
 When it comes to feeding data to your model (and to the tensorflow graph), there has been a few possible ways of achieving this in the past. The standard technique was to use a `tf.placeholder` that was updated through the `run` method of a `tf.Session` object. There was also an attempt of a more optimized input pipeline with [threadings and queues](https://www.tensorflow.org/api_guides/python/threading_and_queues).
@@ -85,6 +105,7 @@ There is a bunch of official tutorials that you can find on the [official websit
 - [How to use `tf.data.Dataset` with the high level model API `tf.estimator`](https://www.tensorflow.org/guide/datasets_for_estimators)
 - [The Neural Machine Translation Tutorial - A good example for NLP](https://github.com/tensorflow/nmt)
 
+<a id="a-simple-example"></a>
 ### A simple example
 
 I am a great fan of the flexibility provided by `tf.data.Dataset.from_generator`. It allows you to do the data loading (from file or elsewhere) and some preprocessing in python before feeding it into the graph. Basically, defining such a dataset is just wiring the outputs of any python generator into Tensorflow Tensors.
@@ -121,6 +142,7 @@ dataset = tf.data.Dataset.from_generator(generator_fn,
     output_shapes=shapes, output_types=types)
 ```
 
+<a id="test-your-tfdata-pipeline"></a>
 ### Test your tf.data pipeline
 
 
@@ -154,6 +176,7 @@ There are 2 techniques to test your `dataset`.
     ```
     > `print(node)` sums up the above explanation in *tensorflow-ic* jargon - though a bit abstruse `(<tf.Tensor 'IteratorGetNext_1:0' shape=(?,) dtype=string>, <tf.Tensor 'IteratorGetNext_1:1' shape=() dtype=int32>)`
 
+<a id="read-from-file-and-tokenize"></a>
 ### Read from file and tokenize
 
 Now, a more complete example. We have 2 files `words` and `tags`, each line containing a white-spaced tokenized tagged sentence.
@@ -198,7 +221,9 @@ Now, a more complete example. We have 2 files `words` and `tags`, each line cont
         return dataset
 
     ```
-    > Notice how we perform a few operations on our `dataset` like `shuffle`, `repeat`, `padded_batch` and `prefetch`. These operations are self-explanatory, except maybe for `prefetch` which ensures that a batch of data is pre-loaded on the computing device so that it does not suffer from data starvation (= wasting compute resources that have to wait for the data to be transfered, a problem that occurs with GPU and a low compute / data ratios)
+    > Notice how we perform a few operations on our `dataset` like `shuffle`, `repeat`, `padded_batch` and `prefetch`. These operations are self-explanatory, except maybe for `prefetch` which ensures that a batch of data is pre-loaded on the computing device so that it does not suffer from data starvation (= wasting compute resources that have to wait for the data to be transfered, a problem that occurs with GPUs and low compute / data ratios)
+
+    > Also be aware of the order of these operations. We want to `shuffle` before repeating (so that we shuffle inside one epoch = one full pass on the dataset). We then apply batching and the very final step is to prefetch.
 
 We don't forget to try out our new pipeline. Let's create 2 files
 1. `words.txt`
@@ -219,8 +244,8 @@ And run the following code
 dataset = input_fn('words.txt', 'tags.txt')
 iterator = dataset.make_one_shot_iterator()
 node = iterator.get_next()
-    with tf.Session() as sess:
-        print(sess.run(node))
+with tf.Session() as sess:
+    print(sess.run(node))
 >>> ((array([[b'I', b'live', b'in', b'San', b'Francisco'],
 >>>          [b'You', b'live', b'in', b'Paris', b'<pad>']],
 >>>         dtype=object),
@@ -232,5 +257,296 @@ node = iterator.get_next()
 > As you can see, the `padded_batch` worked as desired, by adding new tokens to the shorter sentence. Now, we have a batch of data which is ready to be consumed by our model!
 
 
-## Defining our model with tf.estimator
+<a id="define-a-model-with-tfestimator"></a>
+## Define a model with tf.estimator
 
+Now let's briefly give an overview of the `tf.estimator` paradigm. It consists of a high-level class `tf.estimator.Estimator` that provides all the useful training / evaluation / predict methods and handles weight serialization, Tensorboard etc. for you. To get such an instance, you need to define 2 components:
+
+1. A `model_fn(features, labels, mode, params) -> tf.estimator.EstimatorSpec` whose signature is strict and will hold the graph definition.
+    - `features` and `labels` are tensors (possibly nested structure of tensors, meaning tuples or dictionnaries)
+    - `mode` is a string, set by the Estimator. We will use this to specialize our `model_fn` depending on the mode (PREDICT, EVAL or TRAIN).
+    - `params` is a dictionnary that will contain all our hyperparameters.
+
+2. An `input_fn` (as the one we defined above) that returns a `tf.data.Dataset`, which yields the `features` and `labels` consumed by the `model_fn`.
+
+<a id="what-if-i-need-to-manually-set-my-features-and-labels"></a>
+### What if I need to manually set my features and labels?
+
+The `input_fn` can also directly return the "nodes" obtained after iterating the dataset. This can be handy if you want to manually create your `features` as a dictionnary, or manually set labels to `None` in the case of a `predict_input_fn` for example. You would add these few lines at the end of the `input_fn`:
+```python
+iterator = dataset.make_one_shot_iterator()
+(words, nwords), tags = iterator.get_next()
+features = {'words': words, 'nwords': words}
+labels = {'tags': tags}  # Could be None in your predict_input_fn
+return features, labels
+```
+
+
+<a id="global-logic-of-the-model_fn"></a>
+### Global Logic of the model_fn
+
+The global design of the `model_fn` is straightforward, with no boilerplate code:
+
+
+```python
+def model_fn(features, labels, mode, params):
+    # Define the inference graph
+    graph_outputs = some_tensorflow_applied_to(features)
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        # Extract the predictions
+        predictions = some_dict_from(graph_outputs)
+        return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+    else:
+        # Compute loss, metrics, tensorboard summaries
+        loss = compute_loss_from(graph_outputs, labels)
+        metrics = compute_metrics_from(graph_outputs, labels)
+
+        if mode == tf.estimator.ModeKeys.EVAL:
+            return tf.estimator.EstimatorSpec(
+                mode, loss=loss, eval_metric_ops=metrics)
+
+        elif mode == tf.estimator.ModeKeys.TRAIN:
+            # Get train operator
+            train_op = compute_train_op_from(graph_outputs, labels)
+            return tf.estimator.EstimatorSpec(
+                mode, loss=loss, train_op=train_op)
+```
+> Notice the hierarchisation and how each node is defined after an other, depending on the `mode`.
+
+And that's all you need to define!
+
+You can read the next part to get some details about our specific model and how we add metrics etc. If you want to know how to combine the `model_fn` with the `input_fn`, jump to the [last part](#instantiate-an-estimator)!
+
+
+<a id="define-a-bi-lstm--crf-model_fn"></a>
+### Define a bi-LSTM + CRF model_fn
+
+Let's implement a bi-LSTM + CRF for sequence tagging (Named Entity Recognition is one application) as defined in [one of my other blog posts](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html). Here is a step-by-step of the different blocks of our `model_fn`.
+
+You can find the full implementation [here](https://github.com/guillaumegenthial/tf_ner/blob/master/models/lstm_crf/main.py).
+
+
+<a id="parameters-and-vocabulary-tables"></a>
+#### Parameters and vocabulary tables
+
+Nothing spectacular here, except that we use a `tf.contrib.lookup.index_table_from_file` that maps strings to ids in the Tensorflow graph.
+
+```python
+dropout = params['dropout']
+words, nwords = features
+training = (mode == tf.estimator.ModeKeys.TRAIN)
+vocab_words = tf.contrib.lookup.index_table_from_file(
+    params['words'], num_oov_buckets=1)
+with Path(params['tags']).open() as f:
+    indices = [idx for idx, tag in enumerate(f) if tag.strip() != 'O']
+    num_tags = len(indices) + 1
+```
+> Here, `params['words']` is the path to a file containing one lexeme (= an element of my vocabulary) per line. I use Tensorflow built-int lookup tables to map token strings to lexemes ids.
+> We also use the same convention to store the vocabulary of `tags`.
+
+
+<a id="word-embeddings"></a>
+#### Word Embeddings
+
+1. Use the Tensorflow vocabulary lookup table to map token strings to ids
+2. Reload a `np.array` containing some pre-trained vectors (like GloVe) where the row index corresponds to a lexeme id
+3. Perform a lookup in this array to get the embedding of every token
+4. Apply dropout to the dense representation to prevent overfitting
+
+```python
+# Word Embeddings
+word_ids = vocab_words.lookup(words)
+glove = np.load(params['glove'])['embeddings']  # np.array
+variable = np.vstack([glove, [[0.]*params['dim']]])  # For unknown words
+variable = tf.Variable(variable, dtype=tf.float32, trainable=False)
+embeddings = tf.nn.embedding_lookup(variable, word_ids)
+embeddings = tf.layers.dropout(embeddings, rate=dropout, training=training)
+```
+> Because some words might be absent from the vocabulary, we defined a non-zero `num_oov_buckets` in our vocabulary lookup table, which reserves new ids for unknown tokens. This means that we have to add new vectors for this ids at the end of our array of pre-trained embeddings.
+
+<a id="efficient-bi-lstm-with-lstmblockfusedcell"></a>
+#### Efficient bi-LSTM with `LSTMBlockFusedCell`
+
+We use the most efficient implementation of the LSTM cell that combines all the LSTM operations (including recursion) in one CUDA kernel (at least that's what I think is happening here).
+> This `LSTMBlockFusedCell` operates on the entire time sequence (__no need__ to perform any recursion on our side like a `tf.nn.bidirectional_dynamic_rnn` call). However, it requires a Tensor of shape `[time_len x batch_size x input_size]` which means we have to transpose our `embeddings` tensor to be time-major.
+
+```python
+t = tf.transpose(embeddings, perm=[1, 0, 2])  # Make time-major
+lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(params['lstm_size'])
+lstm_cell_bw = tf.contrib.rnn.LSTMBlockFusedCell(params['lstm_size'])
+lstm_cell_bw = tf.contrib.rnn.TimeReversedFusedRNN(lstm_cell_bw)
+output_fw, _ = lstm_cell_fw(t, dtype=tf.float32, sequence_length=nwords)
+output_bw, _ = lstm_cell_bw(t, dtype=tf.float32, sequence_length=nwords)
+output = tf.concat([output_fw, output_bw], axis=-1)
+output = tf.transpose(output, perm=[1, 0, 2])  # Make batch-major
+output = tf.layers.dropout(output, rate=dropout, training=training)
+```
+
+
+<a id="tensorflow-crf"></a>
+#### Tensorflow CRF
+
+We need to define our crf_params variable ourselves because we will need it to compute the CRF loss reusing the same parameters later on.
+
+```python
+logits = tf.layers.dense(output, num_tags)
+crf_params = tf.get_variable("crf", [num_tags, num_tags], dtype=tf.float32)
+pred_ids, _ = tf.contrib.crf.crf_decode(logits, crf_params, nwords)
+```
+
+<a id="predict-mode"></a>
+#### PREDICT Mode
+
+We create a reverse table to map the predicted tag ids back to tag strings and bundle our graph outputs into a `predictions` dictionary.
+
+```python
+if mode == tf.estimator.ModeKeys.PREDICT:
+    # Predictions
+    reverse_vocab_tags = tf.contrib.lookup.index_to_string_table_from_file(
+        params['tags'])
+    pred_strings = reverse_vocab_tags.lookup(tf.to_int64(pred_ids))
+    predictions = {
+        'pred_ids': pred_ids,
+        'tags': pred_strings
+    }
+    return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+```
+
+<a id="loss-for-eval-and-train-modes"></a>
+#### Loss for EVAL and TRAIN modes
+
+We re-use our `crf_params` defined above to get the CRF loss and, again, use an `index_table_from_file` to map the tag strings to tag ids.
+
+```python
+vocab_tags = tf.contrib.lookup.index_table_from_file(params['tags'])
+tags = vocab_tags.lookup(labels)
+log_likelihood, _ = tf.contrib.crf.crf_log_likelihood(
+    logits, tags, nwords, crf_params)
+loss = tf.reduce_mean(-log_likelihood)
+```
+
+<a id="metrics-and-tensorboard"></a>
+#### Metrics and Tensorboard
+
+We use one of my other projects, [tf_metrics](https://github.com/guillaumegenthial/tf_metrics) to get the micro average of multiclass classification metrics like precision, recall and f1, in the same way as scikit-learn does it. This allows us to treat the special null class `O` as a proper null class and get a global score of our model's performance (at the token level).
+
+
+```python
+# Metrics
+weights = tf.sequence_mask(nwords)
+metrics = {
+    'acc': tf.metrics.accuracy(tags, pred_ids, weights),
+    'precision': precision(tags, pred_ids, num_tags, indices, weights),
+    'recall': recall(tags, pred_ids, num_tags, indices, weights),
+    'f1': f1(tags, pred_ids, num_tags, indices, weights),
+}
+# Tensoboard summaries
+for metric_name, op in metrics.items():
+    tf.summary.scalar(metric_name, op[1])
+```
+
+<a id="eval-and-train-modes"></a>
+#### EVAL and TRAIN modes
+
+Now that everything is setup, it is easy to define our EstimatorSpec for the EVAL and TRAIN modes.
+
+```python
+if mode == tf.estimator.ModeKeys.EVAL:
+    return tf.estimator.EstimatorSpec(
+        mode, loss=loss, eval_metric_ops=metrics)
+
+elif mode == tf.estimator.ModeKeys.TRAIN:
+    train_op = tf.train.AdamOptimizer().minimize(
+        loss, global_step=tf.train.get_or_create_global_step())
+    return tf.estimator.EstimatorSpec(
+        mode, loss=loss, train_op=train_op)
+```
+
+<a id="instantiate-an-estimator"></a>
+## Instantiate an Estimator
+
+Initializing our model is just a few lines of codes. As expected, we just need to provide the `model_fn` and some extra configuration.
+
+```python
+# Params
+params = {
+    'dim': 300,
+    'dropout': 0.5,
+    'num_oov_buckets': 1,
+    'epochs': 25,
+    'batch_size': 20,
+    'buffer': 15000,
+    'lstm_size': 100,
+    'words': str(Path(DATADIR, 'vocab.words.txt')),
+    'chars': str(Path(DATADIR, 'vocab.chars.txt')),
+    'tags': str(Path(DATADIR, 'vocab.tags.txt')),
+    'glove': str(Path(DATADIR, 'glove.npz'))
+}
+cfg = tf.estimator.RunConfig(save_checkpoints_secs=120)
+estimator = tf.estimator.Estimator(model_fn, 'results/model', cfg, params)
+```
+
+<a id="train-an-estimator-with-early-stopping"></a>
+## Train an Estimator with early stopping
+
+Now that we have our estimator, we need to perform 3 steps
+
+1. Fully define our `input_fn` on our different datasets. Because the `tf.estimator` API expects callables, we use the standard `functools` library to provide parameters upon execution
+2. We want to train our Estimator as long as our f1 score keeps improving (early-stopping). A way of achieving this is to use a [`stop_if_no_increase_hook`](https://www.tensorflow.org/api_docs/python/tf/contrib/estimator/stop_if_no_increase_hook). Because the hook somehow assumes that the model's `eval_dir` has already been created when it is first called (which is not always the case with our RunConfig), let's make sure that the `eval_dir` exists before even running our training.
+3. Finally, run our training with the `train_and_evaluate`. This method has recently been updated and does not destroy / re-create the graph each time we switch from training to evaluation and vice versa, which results in a very fast and efficient training process with automated evaluation on the development set once in a while! It also supports more advanced uses, like distributed training and evaluation etc. (out of the scope of this post).
+
+
+```python
+# 1. Define our input_fn
+train_inpf = functools.partial(input_fn, fwords('train'), ftags('train'),
+                               params, shuffle_and_repeat=True)
+eval_inpf = functools.partial(input_fn, fwords('testa'), ftags('testa'))
+
+# 2. Create a hook
+Path(estimator.eval_dir()).mkdir(parents=True, exist_ok=True)
+hook = tf.contrib.estimator.stop_if_no_increase_hook(
+    estimator, 'f1', 500, min_steps=8000, run_every_secs=120)
+train_spec = tf.estimator.TrainSpec(input_fn=input_fn, hooks=[hook])
+eval_spec = tf.estimator.EvalSpec(input_fn=eval_inpf, throttle_secs=120)
+
+# 3. Train with early stopping
+tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+```
+
+and now you should see appear stuff like
+
+
+```
+Running training and evaluation locally (non-distributed).
+Start train and evaluate loop. The evaluate will happen after every checkpoint. Checkpoint frequency is determined based on RunConfig arguments: save_checkpoints_steps None or save_checkpoints_secs 60.
+Calling model_fn.
+Done calling model_fn.
+Create CheckpointSaverHook.
+Graph was finalized.
+Running local_init_op.
+Done running local_init_op.
+Saving checkpoints for 0 into results/model/model.ckpt.
+loss = 50.51557, step = 1
+global_step/sec: 12.9584
+loss = 5.384676, step = 101 (7.717 sec)
+global_step/sec: 11.2308
+loss = 2.8501458, step = 401 (8.903 sec)
+global_step/sec: 12.725
+Saving checkpoints for 688 into results/model/model.ckpt.
+Calling model_fn.
+Done calling model_fn.
+Starting evaluation at 2018-09-09-22:24:21
+Graph was finalized.
+Restoring parameters from results/model/model.ckpt-688
+Running local_init_op.
+Done running local_init_op.
+Finished evaluation at 2018-09-09-22:24:26
+Saving dict for global step 688: acc = 0.972764, f1 = 0.8747083, global_step = 688, loss = 1.543679, precision = 0.89365673, recall = 0.8565468
+Saving 'checkpoint_path' summary for global step 688: results/model/model.ckpt-688
+global_step/sec: 5.57122
+loss = 1.5974493, step = 701 (17.949 sec)
+```
+
+
+If you enjoyed and want to contribute and suggest improvements, comments / PR / issues are welcome!
