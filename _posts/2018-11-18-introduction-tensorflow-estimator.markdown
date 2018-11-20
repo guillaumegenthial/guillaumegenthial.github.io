@@ -6,7 +6,7 @@ excerpt: "An example for Natural Language Processing (NER)"
 date:   2018-11-18
 mathjax: true
 comments: true
-tags: tensorflow NLP tf.data tf.estimator
+tags: tensorflow NLP
 github: https://github.com/guillaumegenthial/tf_ner
 published: True
 ---
