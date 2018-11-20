@@ -6,7 +6,7 @@ excerpt: "An example for Natural Language Processing (NER)"
 date:   2018-11-18
 mathjax: true
 comments: true
-tags: tensorflow NLP
+tags: tensorflow NLP tf.data tf.estimator
 github: https://github.com/guillaumegenthial/tf_ner
 published: True
 ---
@@ -19,10 +19,10 @@ __Topics__ *tf.data, tf.estimator, pathlib, LSTMBlockFusedCell, tf.contrib.looku
 
 __Other__
 - You can find an [overview of good practices of Tensorflow for NLP](https://roamanalytics.com/2018/09/24/good-practices-in-modern-tensorflow-for-nlp/) that I've written as part of my job as an NLP engineer at Roam Analytics ([blog post](https://roamanalytics.com/2018/09/24/good-practices-in-modern-tensorflow-for-nlp/), [notebook](http://nbviewer.jupyter.org/github/roamanalytics/roamresearch/blob/master/BlogPosts/Modern_TensorFlow/modern-tensorflow.ipynb), [github](https://github.com/roamanalytics/roamresearch/tree/master/BlogPosts/Modern_TensorFlow))
-- The [course blog of Stanford's CS229](https://cs230-stanford.github.io/tensorflow-input-data.html) also hosts some tutorials that I wrote with one of my friends, [Olivier Moindrot](https://omoindrot.github.io/).
+- The [course blog of Stanford's CS230](https://cs230-stanford.github.io/tensorflow-input-data.html) also hosts some tutorials that I wrote with one of my friends, [Olivier Moindrot](https://omoindrot.github.io/).
 
 
-> This blog post provides an introduction to `tf.data` and `tf.estimator` with a step-by-step review of my bi-LSTM + CRF implementation.
+> This blog post provides an introduction to `tf.data` and `tf.estimator` with a step-by-step review of [my bi-LSTM + CRF implementation](https://github.com/guillaumegenthial/tf_ner/tree/master/models/lstm_crf).
 
 ## Outline
 
@@ -40,6 +40,7 @@ __Other__
     - [Define a bi-LSTM + CRF model_fn](#define-a-bi-lstm--crf-model_fn)
 * [Instantiate an Estimator](#instantiate-an-estimator)
 * [Train an Estimator with early stopping](#train-an-estimator-with-early-stopping)
+* [Results and Conclusion](#results-and-conclusion)
 
 <!-- /MarkdownTOC -->
 
@@ -97,7 +98,7 @@ When it comes to feeding data to your model (and to the tensorflow graph), there
 
 Forget all this (first of all because we won't use `tf.Session` anymore).
 
-A better (and almost perfect) way of feeding data to your tensorflow model is to use a wonderful new tensorflow API called [`tf.data`](https://www.tensorflow.org/api_docs/python/tf/data) (thanks to the efforts of [Derek Murray](https://github.com/mrry) and others) whose philosophy, in a few words, is to create a special node of the graph that knows how to iterate the data and yield batches of tensors.
+A better (and almost perfect) way of __feeding data to your tensorflow model__ is to use a wonderful new tensorflow API called [`tf.data`](https://www.tensorflow.org/api_docs/python/tf/data) (thanks to the efforts of [Derek Murray](https://github.com/mrry) and others) whose philosophy, in a few words, is to create a special node of the graph that knows how to iterate the data and yield batches of tensors.
 
 There is a bunch of official tutorials that you can find on the [official website](https://www.tensorflow.org/) - something alas quite unusual. Here is a (short) selection:
 
@@ -141,6 +142,10 @@ types = (tf.string, tf.int32)
 dataset = tf.data.Dataset.from_generator(generator_fn,
     output_shapes=shapes, output_types=types)
 ```
+> Tensorflow provides other ways of creating datasets, from text files (see `tf.data.TextLineDataset
+`), from np arrays (see `tf.data.Dataset.from_tensor_slices`, from TF records (see `tf.data.TFRecordDataset
+`), etc. For most NLP cases, I advise you to take advantage of the flexibility given by `tf.data.from_generator` unless you need the extra boost in performance provided by the other fancier options.
+
 
 <a id="test-your-tfdata-pipeline"></a>
 ### Test your tf.data pipeline
@@ -179,7 +184,7 @@ There are 2 techniques to test your `dataset`.
 <a id="read-from-file-and-tokenize"></a>
 ### Read from file and tokenize
 
-Now, a more complete example. We have 2 files `words` and `tags`, each line containing a white-spaced tokenized tagged sentence.
+Now, a more __complete example__. We have 2 files `words` and `tags`, each line containing a white-spaced tokenized tagged sentence.
 
 1. The generator function, that reads the files and parse the lines
 
@@ -260,7 +265,7 @@ with tf.Session() as sess:
 <a id="define-a-model-with-tfestimator"></a>
 ## Define a model with tf.estimator
 
-Now let's briefly give an overview of the `tf.estimator` paradigm. It consists of a high-level class `tf.estimator.Estimator` that provides all the useful training / evaluation / predict methods and handles weight serialization, Tensorboard etc. for you. To get such an instance, you need to define 2 components:
+Now let's briefly give an overview of the `tf.estimator` paradigm. It consists of a high-level class `tf.estimator.Estimator` that provides all the useful training / evaluation / predict methods and handles weight serialization, Tensorboard etc. for you. To get such an instance, you need to define __two components__:
 
 1. A `model_fn(features, labels, mode, params) -> tf.estimator.EstimatorSpec` whose signature is strict and will hold the graph definition.
     - `features` and `labels` are tensors (possibly nested structure of tensors, meaning tuples or dictionnaries)
@@ -311,6 +316,9 @@ def model_fn(features, labels, mode, params):
             train_op = compute_train_op_from(graph_outputs, labels)
             return tf.estimator.EstimatorSpec(
                 mode, loss=loss, train_op=train_op)
+
+        else:
+            raise NotImplementedError('Unknown mode {}'.format(mode))
 ```
 > Notice the hierarchisation and how each node is defined after an other, depending on the `mode`.
 
@@ -324,12 +332,16 @@ You can read the next part to get some details about our specific model and how 
 
 Let's implement a bi-LSTM + CRF for sequence tagging (Named Entity Recognition is one application) as defined in [one of my other blog posts](https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html). Here is a step-by-step of the different blocks of our `model_fn`.
 
+{% include image.html url="/assets/ner.png" description="Named Entity Recognition" size="100%" %}
+
+
 You can find the full implementation [here](https://github.com/guillaumegenthial/tf_ner/blob/master/models/lstm_crf/main.py).
 
 
 <a id="parameters-and-vocabulary-tables"></a>
 #### Parameters and vocabulary tables
 
+Let's extract and define a few variables at the beginning of our `model_fn` for easier reuse later on.
 Nothing spectacular here, except that we use a `tf.contrib.lookup.index_table_from_file` that maps strings to ids in the Tensorflow graph.
 
 ```python
@@ -349,13 +361,14 @@ with Path(params['tags']).open() as f:
 <a id="word-embeddings"></a>
 #### Word Embeddings
 
-1. Use the Tensorflow vocabulary lookup table to map token strings to ids
-2. Reload a `np.array` containing some pre-trained vectors (like GloVe) where the row index corresponds to a lexeme id
+The __first step__ in our graph is getting the word representation.
+
+1. Use the __Tensorflow vocabulary lookup table to map token strings to ids__.
+2. Reload a `np.array` containing some pre-trained vectors (like GloVe) where the row index corresponds to a lexeme id.
 3. Perform a lookup in this array to get the embedding of every token
 4. Apply dropout to the dense representation to prevent overfitting
 
 ```python
-# Word Embeddings
 word_ids = vocab_words.lookup(words)
 glove = np.load(params['glove'])['embeddings']  # np.array
 variable = np.vstack([glove, [[0.]*params['dim']]])  # For unknown words
@@ -367,6 +380,8 @@ embeddings = tf.layers.dropout(embeddings, rate=dropout, training=training)
 
 <a id="efficient-bi-lstm-with-lstmblockfusedcell"></a>
 #### Efficient bi-LSTM with `LSTMBlockFusedCell`
+
+The __second step__ is getting the context representation by applying a bi-LSTM on top of the token representation.
 
 We use the most efficient implementation of the LSTM cell that combines all the LSTM operations (including recursion) in one CUDA kernel (at least that's what I think is happening here).
 > This `LSTMBlockFusedCell` operates on the entire time sequence (__no need__ to perform any recursion on our side like a `tf.nn.bidirectional_dynamic_rnn` call). However, it requires a Tensor of shape `[time_len x batch_size x input_size]` which means we have to transpose our `embeddings` tensor to be time-major.
@@ -387,6 +402,8 @@ output = tf.layers.dropout(output, rate=dropout, training=training)
 <a id="tensorflow-crf"></a>
 #### Tensorflow CRF
 
+The __third step__ is decoding the sentence using a CRF.
+
 We need to define our crf_params variable ourselves because we will need it to compute the CRF loss reusing the same parameters later on.
 
 ```python
@@ -395,10 +412,12 @@ crf_params = tf.get_variable("crf", [num_tags, num_tags], dtype=tf.float32)
 pred_ids, _ = tf.contrib.crf.crf_decode(logits, crf_params, nwords)
 ```
 
+> Now we've defined our graph outputs. Let's cover the rest of the `model_fn`.
+
 <a id="predict-mode"></a>
 #### PREDICT Mode
 
-We create a reverse table to map the predicted tag ids back to tag strings and bundle our graph outputs into a `predictions` dictionary.
+We create a reverse table to map the predicted tag ids back to tag strings and bundle our graph outputs into a `predictions` dictionary. It is important to notice here that the `EstimatorSpec` of the PREDICT mode only has tensors that depend on `features`. We haven't used the `labels` so far (we will for the EVAL and TRAIN mode though).
 
 ```python
 if mode == tf.estimator.ModeKeys.PREDICT:
@@ -429,22 +448,28 @@ loss = tf.reduce_mean(-log_likelihood)
 <a id="metrics-and-tensorboard"></a>
 #### Metrics and Tensorboard
 
-We use one of my other projects, [tf_metrics](https://github.com/guillaumegenthial/tf_metrics) to get the micro average of multiclass classification metrics like precision, recall and f1, in the same way as scikit-learn does it. This allows us to treat the special null class `O` as a proper null class and get a global score of our model's performance (at the token level).
+We use one of my other projects, [tf_metrics](https://github.com/guillaumegenthial/tf_metrics) to get the __micro average of multiclass classification metrics like precision, recall and f1__, in the same way as scikit-learn does it. This allows us to treat the special null class `O` as a proper null class and get a global score of our model's performance (at the token level).
 
 
 ```python
+import tf_metrics
+
 # Metrics
 weights = tf.sequence_mask(nwords)
 metrics = {
     'acc': tf.metrics.accuracy(tags, pred_ids, weights),
-    'precision': precision(tags, pred_ids, num_tags, indices, weights),
-    'recall': recall(tags, pred_ids, num_tags, indices, weights),
-    'f1': f1(tags, pred_ids, num_tags, indices, weights),
+    'precision': tf_metrics.precision(tags, pred_ids, num_tags, indices, weights),
+    'recall': tf_metrics.recall(tags, pred_ids, num_tags, indices, weights),
+    'f1': tf_metrics.f1(tags, pred_ids, num_tags, indices, weights),
 }
 # Tensoboard summaries
 for metric_name, op in metrics.items():
     tf.summary.scalar(metric_name, op[1])
 ```
+
+You can install [`tf_metrics`](https://github.com/guillaumegenthial/tf_metrics) with
+
+`pip install git+https://github.com/guillaumegenthial/tf_metrics.git`
 
 <a id="eval-and-train-modes"></a>
 #### EVAL and TRAIN modes
@@ -486,6 +511,7 @@ params = {
 cfg = tf.estimator.RunConfig(save_checkpoints_secs=120)
 estimator = tf.estimator.Estimator(model_fn, 'results/model', cfg, params)
 ```
+> `save_checkpoints_secs=120` means that every 2 minutes (120 seconds) we want to serialize our weights to disk.
 
 <a id="train-an-estimator-with-early-stopping"></a>
 ## Train an Estimator with early stopping
@@ -499,9 +525,10 @@ Now that we have our estimator, we need to perform 3 steps
 
 ```python
 # 1. Define our input_fn
-train_inpf = functools.partial(input_fn, fwords('train'), ftags('train'),
+train_inpf = functools.partial(input_fn, 'words.train.txt', 'tags.train.txt',
                                params, shuffle_and_repeat=True)
-eval_inpf = functools.partial(input_fn, fwords('testa'), ftags('testa'))
+eval_inpf = functools.partial(input_fn,'words.testa.txt', 'tags.testa.txt'
+                              params)
 
 # 2. Create a hook
 Path(estimator.eval_dir()).mkdir(parents=True, exist_ok=True)
@@ -547,6 +574,82 @@ Saving 'checkpoint_path' summary for global step 688: results/model/model.ckpt-6
 global_step/sec: 5.57122
 loss = 1.5974493, step = 701 (17.949 sec)
 ```
+
+<a id="results-and-conclusion"></a>
+## Results and Conclusion
+
+You will find the complete implementation on [github](https://github.com/guillaumegenthial/tf_ner) as well as other variants (with character embeddings, with Exponential Moving Average of weights, etc.).
+
+For those curious about the results yielded by this implementation, I've conducted a few __experiments on the CoNLL2003 dataset__, training on `train` only with early stopping on `testa` and reported average, standard deviation and best of 5 runs. To compare with the results to the __paper__ [Bidirectional LSTM-CRF Models for Sequence Tagging](https://arxiv.org/abs/1508.01991) by Huang, Xu and Yu.
+
+__Training time__ ~ 20 min on my laptop.
+
+<!--
+|| `train` | `testa` | `testb` | Paper, `testb` |
+|---|---|---|---|---|
+|best | 98.45 |93.81 | __90.61__ |  90.10 |
+|best (EMA)| 98.82 | 94.06 | 90.43 | |
+|mean ± std| 98.85 ± 0.22| 93.68 ± 0.12| 90.42 ± 0.10|  |
+|mean ± std (EMA)| 98.71 ± 0.47 | 93.81 ± 0.24 | __90.50__ ± 0.21| |
+|abs. best |   | | 90.61 |  |
+|abs. best (EMA) | |  | 90.75 |  | -->
+
+
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th> </th>
+      <th><code class="highlighter-rouge">train</code></th>
+      <th><code class="highlighter-rouge">testa</code></th>
+      <th><code class="highlighter-rouge">testb</code></th>
+      <th>Paper, <code class="highlighter-rouge">testb</code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>best</td>
+      <td>98.45</td>
+      <td>93.81</td>
+      <td><strong>90.61</strong></td>
+      <td>90.10</td>
+    </tr>
+    <tr>
+      <td>best (EMA)</td>
+      <td>98.82</td>
+      <td>94.06</td>
+      <td>90.43</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>mean ± std</td>
+      <td>98.85 ± 0.22</td>
+      <td>93.68 ± 0.12</td>
+      <td>90.42 ± 0.10</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>mean ± std (EMA)</td>
+      <td>98.71 ± 0.47</td>
+      <td>93.81 ± 0.24</td>
+      <td><strong>90.50</strong> ± 0.21</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>abs. best</td>
+      <td> </td>
+      <td> </td>
+      <td>90.61</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>abs. best (EMA)</td>
+      <td> </td>
+      <td> </td>
+      <td>90.75</td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
 
 
 If you enjoyed and want to contribute and suggest improvements, comments / PR / issues are welcome!

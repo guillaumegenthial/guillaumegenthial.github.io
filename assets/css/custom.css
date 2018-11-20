@@ -12,6 +12,9 @@ body {
   /*letter-spacing: normal;*/
 }
 
+table { table }
+
+
 .post {
   padding-top: 30px;
 }
@@ -60,7 +63,7 @@ a.post-preview:hover div.post-preview-title {
   float: left;
   padding-top: 0.5em;
   padding-right: 20px;
-  
+
 }
 
 .post-date {
