@@ -57,7 +57,7 @@ Thanks to intense competition on the Deep Learning Framework landscape, driving 
 
 <!-- For those unfamiliar with Tensorflow, just wanting to bootstrap their project and reading on the web good and bad things about it, especially how so much more user-friendly its rival, Facebook's newborn [pyTorch](https://pytorch.org/) is, well, forget about those sterile debates and try them both: they are more than good enough and when it comes to chosing which one to use for your company or your project, it depends more on what existing implementation is available and your technical debt than the frameworks' specificities. -->
 
-This blog post provides an __example of how to use `tf.data` and `tf.estimator` for NLP__ and gives some advice and demonstrate how you can quickly get a state-of-the-art NLP model up and running with as few as a 100 lines of Tensorflow code!
+This blog post provides an __example of how to use `tf.data` and `tf.estimator` for NLP__ and demonstrate how you can quickly get a state-of-the-art NLP model up and running with as few as a 100 lines of Tensorflow code!
 
 <a id="global-configuration"></a>
 ## Global configuration
