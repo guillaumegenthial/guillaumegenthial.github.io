@@ -4,14 +4,14 @@ title: About
 permalink: /about/
 ---
 
-I recently joined <a href="https://roamanalytics.com">Roam Analytics</a> as an NLP engineer, where I work on improving existing NLP pipelines and developing new models for information extraction applied to clinical text.
+In 2018 I joined <a href="https://roamanalytics.com">Roam Analytics</a> as an NLP engineer, where I have been working on improving existing NLP pipelines and developing new models for information extraction applied to clinical text.
 
 I am particularly interested in <b>Natural Language Processing</b>, and over the years gained some experience in python and <b>TensorFlow</b> (see for instance my <a href="https://github.com/guillaumegenthial/im2latex">seq2seq implementation</a>).
 
 
 ---
 <br>
-Prior to Roam, I was studying at <b>Stanford University</b>, where I earned a MSc in Computational and Mathematical Engineering. I also have a MS in Applied Mathematics from the <a href="https://www.polytechnique.edu/">Ecole polytechnique</a> (France) where I was also involved in statistical and quantum physics (but sadly forgot most of it).
+I did a MSc in Computational and Mathematical Engineering at <b>Stanford University</b>. I also have a MS in Applied Mathematics from the <a href="https://www.polytechnique.edu/">Ecole polytechnique</a> (France) where I was also involved in statistical and quantum physics.
 
 ---
 <br>
