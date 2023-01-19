@@ -15,7 +15,7 @@
 # in the templates via {{ site.myvariable }}.
 title: Guillaume Genthial blog
 email: ""
-description: "Natural Language Processing and AI"
+description: "Solving modern challenges with the help of Machine Learning and AI"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://guillaumegenthial.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  guillaumegenthial
@@ -35,6 +35,21 @@ exclude:
 
 
 curriculum:
+  - image: img/fragment.png
+    title: Fragment
+    info: 2022
+    description: Co-founder
+    url: https://fragment.run
+  - image: img/metamap.png
+    title: Metamap
+    info: 2021
+    description: AI lead
+    url: https://www.glassdoor.com/Reviews/MetaMap-Reviews-E3438864.htm?sort.sortType=OR&sort.ascending=true&filter.iso3Language=eng
+  - image: img/criteo.jpg
+    title: Criteo
+    info: 2019
+    description: Senior Machine Learning Engineer
+    url: https://www.criteo.com
   - image: img/roam.png
     title: Roam Analytics
     info: 2018
