@@ -13,10 +13,12 @@ published: True
 <div class="alert alert-success" role="alert">
   <p>
       This post goes down a dangerous path. Since writing it, I've experienced more real-life situations and my perspective is different.
-
-      I now believe that the best way to write configurable code is <strong>not to use config files</strong>, but to use code. Every config language ends up being just a broken programming language. It's better in almost every way to use a battle-tested language rather than a DSL that nobody knows. Django does it ; AWS does it with CDK (IaC in TypeScript); etc.
-      
-      See this interesting post : <a href="https://mikehadlow.blogspot.com/2012/05/configuration-complexity-clock.html?m=1">The configuration complexity clock</a>
+  </p>
+  <p>
+    I now believe that the best way to write configurable code is <strong>not to use config files</strong>, but to use code. Every config language ends up being just a broken programming language. It's better in almost every way to use a battle-tested language rather than a DSL that nobody knows. Django does it ; AWS does it with CDK (IaC in TypeScript); etc.
+  </p>
+  <p>
+    See this interesting post : <a href="https://mikehadlow.blogspot.com/2012/05/configuration-complexity-clock.html?m=1">The configuration complexity clock</a>
   </p>
   <hr>
   <p class="mb-0">
