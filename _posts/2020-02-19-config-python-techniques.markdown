@@ -16,7 +16,7 @@ published: True
 
       I now believe that the best way to write configurable code is <strong>not to use config files</strong>, but to use code. Every config language ends up being just a broken programming language. It's better in almost every way to use a battle-tested language rather than a DSL that nobody knows. Django does it ; AWS does it with CDK (IaC in TypeScript); etc.
       
-      See this interesting post : [The configuration complexity clock](https://mikehadlow.blogspot.com/2012/05/configuration-complexity-clock.html?m=1)
+      See this interesting post : <a href="https://mikehadlow.blogspot.com/2012/05/configuration-complexity-clock.html?m=1">The configuration complexity clock</a>
   </p>
   <hr>
   <p class="mb-0">
