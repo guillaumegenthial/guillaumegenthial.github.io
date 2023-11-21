@@ -5,9 +5,10 @@ permalink: /about/
 ---
 
 
-I am currently building <a href="https://fragment.run">Fragment</a> with <a href="https://omoindrot.github.io">Olivier Moindrot</a>. We previously led the AI team of a KYC provider together and we saw the limitations of KYC and how they expose fintechs to fraudsters.
+I am currently building <a href="https://checkfragment.com">Fragment</a> with <a href="https://omoindrot.github.io">Olivier Moindrot</a>. 
 
-We want to build the next real-time AI platform to fight fraud (subscribe on <a href="https://fragment.run">Fragment</a> to get updates).
+Fragment manages human-in-the-loop operations for AI companies.
 
+I previously held various engineering roles in Machine Learning. More specifically, I led the AI team of a KYC provider which handled identity verification with a mix of AI and human experts.
 
-I have extensive experience in Machine Learning, from modelling (both in NLP, Computer Vision and Recommendation systems) to ML Ops.
+I have extensive experience in Machine Learning, from modeling (both in NLP, Computer Vision and Recommendation systems) to ML Ops.
