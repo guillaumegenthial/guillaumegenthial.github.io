@@ -53,7 +53,7 @@ __Other__
 
 Not so long ago, designing Deep Learning software meant writing custom `Model` classes. However, with code and implementations piling up on github and other open-source platforms, developers soon had enough examples to start designing __unified high-level APIs for models and data loading__. After all, we are all lazy and writing boilerplate code is not necessarily our cup of tea.
 
-Thanks to intense competition on the Deep Learning Framework landscape, driving innovation and development of new functionnalities, brillant minds at Google and elsewhere worked on new additions to Tensorflow. Don't ask me which version has it all (but I'm pretty sure 1.9 is good enough).
+Thanks to intense competition on the Deep Learning Framework landscape, driving innovation and development of new functionalities, brillant minds at Google and elsewhere worked on new additions to Tensorflow. Don't ask me which version has it all (but I'm pretty sure 1.9 is good enough).
 
 <!-- For those unfamiliar with Tensorflow, just wanting to bootstrap their project and reading on the web good and bad things about it, especially how so much more user-friendly its rival, Facebook's newborn [pyTorch](https://pytorch.org/) is, well, forget about those sterile debates and try them both: they are more than good enough and when it comes to chosing which one to use for your company or your project, it depends more on what existing implementation is available and your technical debt than the frameworks' specificities. -->
 
@@ -268,7 +268,7 @@ with tf.Session() as sess:
 Now let's briefly give an overview of the `tf.estimator` paradigm. It consists of a high-level class `tf.estimator.Estimator` that provides all the useful training / evaluation / predict methods and handles weight serialization, Tensorboard etc. for you. To get such an instance, you need to define __two components__:
 
 1. A `model_fn(features, labels, mode, params) -> tf.estimator.EstimatorSpec` whose signature is strict and will hold the graph definition.
-    - `features` and `labels` are tensors (possibly nested structure of tensors, meaning tuples or dictionnaries)
+    - `features` and `labels` are tensors (possibly nested structure of tensors, meaning tuples or dictionaries)
     - `mode` is a string, set by the Estimator. We will use this to specialize our `model_fn` depending on the mode (PREDICT, EVAL or TRAIN).
     - `params` is a dictionnary that will contain all our hyperparameters.
 
